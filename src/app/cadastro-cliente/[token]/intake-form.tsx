@@ -34,7 +34,7 @@ export function IntakeForm({ token, defaults = {} }: { token: string; defaults?:
   }
   function capitalize(event: React.FocusEvent<HTMLInputElement>) {
     const input = event.currentTarget;
-    if (input.name !== "email" && input.type !== "date" && input.type !== "time" && input.name !== "cpf" && input.name !== "phone") {
+    if (input.name !== "email" && input.type !== "date" && input.type !== "time" && input.name !== "cpf" && input.name !== "phone" && input.name !== "rg") {
       input.value = capitalizeWords(input.value);
     }
   }
