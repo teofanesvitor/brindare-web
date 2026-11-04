@@ -74,9 +74,9 @@ export async function convertIntakeToClient(form: FormData) {
     cpf: formatCpf(text(form, "cpf") || p.cpf || ""), rg: text(form, "rg") || p.rg || null,
     phone: text(form, "phone") || p.phone || null,
     email: (text(form, "email") || p.email || "").toLowerCase() || null,
-    address: text(form, "address") || p.address || null,
-    neighborhood: text(form, "neighborhood") || p.neighborhood || null,
-    city: text(form, "city") || p.city || null,
+    address: titleCase(text(form, "address") || p.address || ""),
+    neighborhood: titleCase(text(form, "neighborhood") || p.neighborhood || "") || null,
+    city: titleCase(text(form, "city") || p.city || "") || null,
     event_details: {
       event_date: p.event_date || "", event_time: p.event_time || "", toast_time: p.toast_time || "",
       venue: titleCase(p.venue || ""), ceremony_contact: titleCase(p.ceremony_contact || ""), referral: titleCase(p.referral || ""),
