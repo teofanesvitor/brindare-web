@@ -70,8 +70,8 @@ export async function convertIntakeToClient(form: FormData) {
   if (intakeError || !intake || intake.status !== "submitted" || !intake.payload) throw new Error("Solicitação não encontrada ou já processada.");
   const p = intake.payload as Record<string, string>;
   const client = {
-    full_name: text(form, "full_name") || p.full_name || "",
-    cpf: text(form, "cpf") || p.cpf || null, rg: text(form, "rg") || p.rg || null,
+    full_name: titleCase(text(form, "full_name") || p.full_name || ""),
+    cpf: formatCpf(text(form, "cpf") || p.cpf || ""), rg: text(form, "rg") || p.rg || null,
     phone: text(form, "phone") || p.phone || null,
     email: (text(form, "email") || p.email || "").toLowerCase() || null,
     address: text(form, "address") || p.address || null,
@@ -79,10 +79,12 @@ export async function convertIntakeToClient(form: FormData) {
     city: text(form, "city") || p.city || null,
     event_details: {
       event_date: p.event_date || "", event_time: p.event_time || "", toast_time: p.toast_time || "",
-      venue: p.venue || "", ceremony_contact: p.ceremony_contact || "", referral: p.referral || "",
+      venue: titleCase(p.venue || ""), ceremony_contact: titleCase(p.ceremony_contact || ""), referral: titleCase(p.referral || ""),
     },
   };
   if (client.full_name.length < 3) throw new Error("Informe o nome completo do cliente.");
+  if (!client.cpf || !validCpf(client.cpf)) throw new Error("Informe um CPF válido.");
+  if (!client.address) throw new Error("Informe o endereço do cliente.");
   const { data: created, error } = await supabase.from("clients").insert(client).select("id").single();
   if (error) throw new Error(error.message);
   const { error: updateError } = await supabase.from("client_intakes").update({ status: "converted", client_id: created.id }).eq("id", intake.id);
