@@ -26,3 +26,36 @@ export async function signOut() {
   await supabase.auth.signOut();
   redirect("/login");
 }
+
+export async function updatePassword(formData: FormData) {
+  const password = String(formData.get("password") || "");
+  const confirmation = String(formData.get("confirmation") || "");
+
+  if (password.length < 8) {
+    redirect("/definir-senha?error=short_password");
+  }
+
+  if (password !== confirmation) {
+    redirect("/definir-senha?error=password_mismatch");
+  }
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login?error=invalid_credentials");
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password,
+  });
+
+  if (error) {
+    redirect("/definir-senha?error=update_failed");
+  }
+
+  redirect("/dashboard");
+}

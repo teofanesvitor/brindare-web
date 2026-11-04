@@ -1,6 +1,8 @@
-import "dotenv/config";
+import dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 import { parseAdminEmails } from "../src/lib/validation/admin-emails";
+
+dotenv.config({ path: ".env.local" });
 
 async function main() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
