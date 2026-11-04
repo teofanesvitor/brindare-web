@@ -47,8 +47,7 @@ export function IntakeForm({ token, defaults = {} }: { token: string; defaults?:
     <label>E-mail *<input name="email" type="email" required autoComplete="email" inputMode="email" defaultValue={defaults.email || ""}/></label>
     <label>CPF *<input name="cpf" required inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" value={cpf} onChange={(event) => {setCpf(maskCpf(event.target.value));setCpfError("");}} onBlur={checkCpf} aria-invalid={!!cpfError}/>{cpfError && <small className="field-error">{cpfError}</small>}</label>
     <label>RG<input name="rg" defaultValue={defaults.rg || ""} onBlur={capitalize}/></label>
-    <label>Endereço *</label>
-    <label className="full-width"><input name="address" required autoComplete="street-address" defaultValue={defaults.address || ""} onBlur={capitalize} placeholder="Rua, número e complemento"/></label>
+    <label className="full-width">Endereço *<input name="address" required autoComplete="street-address" defaultValue={defaults.address || ""} onBlur={capitalize} placeholder="Rua, número e complemento"/></label>
     <label>Bairro<input name="neighborhood" defaultValue={defaults.neighborhood || ""} onBlur={capitalize}/></label>
     <label>Município<input name="city" defaultValue={defaults.city || "Maceió"} onBlur={capitalize}/></label>
     <label>Data do evento *<input name="event_date" type="date" required defaultValue={defaults.event_date || ""}/></label>
