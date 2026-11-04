@@ -4,11 +4,15 @@ import { useState, useTransition } from "react";
 import { FileText, FileDown, LoaderCircle } from "lucide-react";
 import { generateContractAction, type ContractActionResult } from "@/actions/contracts";
 
+type InitialData = {
+  clientId?: string; client?: string; cpf?: string; rg?: string; phone?: string; email?: string;
+  address?: string; neighborhood?: string; city?: string; eventDate?: string; eventTime?: string; venue?: string;
+};
 type FieldProps = { label: string; name: string; type?: string; required?: boolean; defaultValue?: string | number; min?: string; step?: string };
 function Field({ label, name, type = "text", required = false, defaultValue = "", min, step }: FieldProps) {
   return <label className="contract-field"><span>{label}{required ? " *" : ""}</span><input name={name} type={type} required={required} defaultValue={defaultValue} min={min} step={step} /></label>;
 }
-export function ContractForm() {
+export function ContractForm({ initialData = {} }: { initialData?: InitialData }) {
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<ContractActionResult | null>(null);
   function submit(formData: FormData) {
@@ -16,21 +20,23 @@ export function ContractForm() {
     startTransition(async () => setResult(await generateContractAction(formData)));
   }
   return <form action={submit} className="contract-form">
+    {initialData.clientId && <input type="hidden" name="clientId" value={initialData.clientId}/>}
+    {initialData.clientId && <div className="contract-notice"><strong>Cadastro pré-preenchido a partir da solicitação do cliente.</strong> Revise os dados e complete as condições comerciais antes de gerar o contrato.</div>}
     <section className="contract-panel"><h2>Evento</h2><div className="contract-grid">
-      <Field label="Data do evento" name="eventDate" type="date" required />
-      <Field label="Horário" name="eventTime" type="time" />
-      <Field label="Local do evento" name="venue" />
+      <Field label="Data do evento" name="eventDate" type="date" required defaultValue={initialData.eventDate || ""}/>
+      <Field label="Horário" name="eventTime" type="time" defaultValue={initialData.eventTime || ""}/>
+      <Field label="Local do evento" name="venue" defaultValue={initialData.venue || ""}/>
       <Field label="Pacote" name="packageName" required />
     </div></section>
     <section className="contract-panel"><h2>Dados do contratante</h2><div className="contract-grid">
-      <Field label="Nome completo" name="client" required />
-      <Field label="CPF" name="cpf" required />
-      <Field label="RG" name="rg" />
-      <Field label="Telefone" name="phone" />
-      <Field label="E-mail" name="email" type="email" />
-      <Field label="Endereço" name="address" />
-      <Field label="Bairro" name="neighborhood" />
-      <Field label="Município" name="city" />
+      <Field label="Nome completo" name="client" required defaultValue={initialData.client || ""}/>
+      <Field label="CPF" name="cpf" required defaultValue={initialData.cpf || ""}/>
+      <Field label="RG" name="rg" defaultValue={initialData.rg || ""}/>
+      <Field label="Telefone" name="phone" defaultValue={initialData.phone || ""}/>
+      <Field label="E-mail" name="email" type="email" defaultValue={initialData.email || ""}/>
+      <Field label="Endereço" name="address" defaultValue={initialData.address || ""}/>
+      <Field label="Bairro" name="neighborhood" defaultValue={initialData.neighborhood || ""}/>
+      <Field label="Município" name="city" defaultValue={initialData.city || ""}/>
     </div></section>
     <section className="contract-panel"><h2>Valores (R$)</h2><div className="contract-grid">
       <Field label="Valor total" name="total" type="number" required min="0" step="0.01" defaultValue="0" />
