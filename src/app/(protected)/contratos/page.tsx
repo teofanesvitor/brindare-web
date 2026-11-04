@@ -17,7 +17,7 @@ export default async function ContratosPage({ searchParams }: { searchParams: Pr
     clientId: client.id, client: client.full_name, cpf: client.cpf || "", rg: client.rg || "",
     phone: client.phone || "", email: client.email || "", address: client.address || "",
     neighborhood: client.neighborhood || "", city: client.city || "",
-    eventDate: details.event_date || "", eventTime: details.event_time || "", venue: details.venue || "",
+    eventDate: details.event_date || "", eventTime: details.event_time || "", toastTime: details.toast_time || "", venue: details.venue || "",
   } : undefined;
   return <main className="content"><div className="page-heading"><div><div className="eyebrow">Documentos</div><h1>Geração de contratos</h1><p>Gere o contrato editável no Google Docs e sua versão em PDF.</p></div></div>
     <div className="contract-notice"><FileText size={18}/><div><strong>Modelo oficial Brindare</strong><p>Será utilizada uma cópia do modelo Google Docs configurado. O modelo original não será alterado.</p></div></div>
