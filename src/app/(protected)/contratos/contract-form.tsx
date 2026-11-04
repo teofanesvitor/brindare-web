@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type FocusEvent } from "react";
 import { FileText, FileDown, LoaderCircle } from "lucide-react";
 import { generateContractAction, type ContractActionResult } from "@/actions/contracts";
 
@@ -10,8 +10,16 @@ type InitialData = {
   toastTime?: string; venue?: string;
 };
 type FieldProps = { label: string; name: string; type?: string; required?: boolean; defaultValue?: string | number; min?: string; step?: string };
+function capitalizeWords(value: string) {
+  return value.toLocaleLowerCase("pt-BR").replace(/(^|\\s|[-'])\\p{L}/gu, (match) => match.toLocaleUpperCase("pt-BR"));
+}
 function Field({ label, name, type = "text", required = false, defaultValue = "", min, step }: FieldProps) {
-  return <label className="contract-field"><span>{label}{required ? " *" : ""}</span><input name={name} type={type} required={required} defaultValue={defaultValue} min={min} step={step} /></label>;
+  function capitalize(event: FocusEvent<HTMLInputElement>) {
+    if (!["email", "cpf", "phone"].includes(name) && type !== "date" && type !== "time" && type !== "number") {
+      event.currentTarget.value = capitalizeWords(event.currentTarget.value);
+    }
+  }
+  return <label className="contract-field"><span>{label}{required ? " *" : ""}</span><input name={name} type={type} required={required} defaultValue={defaultValue} min={min} step={step} onBlur={capitalize}/></label>;
 }
 export function ContractForm({ initialData = {} }: { initialData?: InitialData }) {
   const [pending, startTransition] = useTransition();
