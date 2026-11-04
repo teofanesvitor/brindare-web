@@ -96,9 +96,9 @@ create policy "Administradores gerenciam movimentações" on public.inventory_mo
 using (public.is_admin()) with check (public.is_admin() and created_by = auth.uid());
 
 insert into public.inventory_items(name, unit, minimum_quantity) values
-  ('Taças','unidade',30),('Fogos','par',2),('Sparkles','unidade',10),
-  ('Mesa','unidade',1),('Champanhe','garrafa',2),('Extensão','unidade',1),
-  ('Furadeira','unidade',1)
+  ('Taças','unidade',0),('Fogos','par',0),('Sparkles','unidade',0),
+  ('Mesa','unidade',0),('Champanhe','garrafa',0),('Extensão','unidade',0),
+  ('Furadeira','unidade',0)
 on conflict (name) do nothing;
 
 comment on table public.client_intakes is 'Solicitações públicas identificadas por token SHA-256; o token original nunca é armazenado.';
