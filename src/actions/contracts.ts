@@ -38,10 +38,10 @@ export async function generateContractAction(formData: FormData): Promise<Contra
     if (error) {
       return { ok: false, message: `Arquivos gerados no Google Drive, mas não foi possível registrar no sistema: ${error.message}` };
     }
-    if (parsed.data.clientId) {
+    {
       const { error: eventError } = await supabase.from("events").insert({
         contract_id: savedContract.id,
-        client_id: parsed.data.clientId,
+        client_id: parsed.data.clientId || null,
         client_name: parsed.data.client,
         event_date: parsed.data.eventDate,
         event_time: parsed.data.eventTime || null,
