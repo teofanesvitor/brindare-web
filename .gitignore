@@ -2,10 +2,14 @@ node_modules/
 .next/
 out/
 dist/
+build/
 coverage/
-.env
-.env.local
-.env.*.local
+.env*
 !.env.example
 .DS_Store
 *.log
+*.pem
+*.key
+credentials.json
+token.json
+*service-account*.json
