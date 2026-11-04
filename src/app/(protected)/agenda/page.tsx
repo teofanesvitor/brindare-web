@@ -62,6 +62,7 @@ export default async function AgendaPage() {
                   <th>Pacote</th>
                   <th>Itens</th>
                   <th>Valor</th>
+                  <th>Deslocamento</th>
                   <th>Saldo</th>
                   <th>Status</th>
                   <th>Atualizar</th>
@@ -83,6 +84,7 @@ export default async function AgendaPage() {
                       </small>
                     </td>
                     <td>{money(event.total_cents)}</td>
+                    <td>{money(event.travel_cents || 0)}</td>
                     <td>{money(event.balance_cents)}</td>
                     <td>
                       <span className={`status-pill status-${event.status.toLowerCase().replaceAll(" ", "-")}`}>
