@@ -17,7 +17,7 @@ export default async function AgendaPage() {
   const { data: events, error } = await supabase
     .from("events")
     .select(
-      "id,contract_id,client_name,event_date,event_time,venue,package_name,total_cents,balance_cents,status,glasses,fireworks,sparkles,tables,champagne"
+      "id,contract_id,client_name,event_date,event_time,toast_time,venue,package_name,total_cents,balance_cents,travel_cents,status,glasses,fireworks,sparkles,tables,champagne"
     )
     .not("contract_id", "is", null)
     .gte("event_date", today)
@@ -72,7 +72,7 @@ export default async function AgendaPage() {
                   <tr key={event.id}>
                     <td>
                       <strong>{date(event.event_date)}</strong>
-                      <small>{event.event_time?.slice(0, 5) || "Horário a definir"}</small>
+                      <small>Evento: {event.event_time?.slice(0, 5) || "A definir"} · Brinde: {event.toast_time?.slice(0, 5) || "A definir"}</small>
                     </td>
                     <td>{event.client_name}</td>
                     <td>{event.venue}</td>
