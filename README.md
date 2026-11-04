@@ -154,3 +154,27 @@ git push -u origin main
 ```
 
 Substitua `SEU_USUARIO` pelo seu usuário GitHub. Configure as credenciais de produção nas variáveis de ambiente da plataforma de hospedagem, nunca em arquivos versionados.
+
+## Agenda, clientes e estoque
+
+A Fase 2 adiciona as rotas administrativas `/agenda`, `/clientes` e `/estoque`.
+
+- **Agenda:** registra eventos por data e horário, cliente, local, cerimonial, indicação, pacote, valores, status e quantidades de itens. Contratos finalizados pelo fluxo de pré-cadastro são registrados automaticamente na agenda.
+- **Clientes:** o administrador gera um link individual de pré-cadastro. O link expira em 14 dias e é de uso único. O cliente informa os dados pessoais e dados básicos do evento; a equipe recebe uma notificação na navegação, revisa e completa o cadastro. Após a revisão, o sistema abre a geração de contrato com os dados do cliente e do evento pré-preenchidos.
+- **Estoque:** catálogo inicial baseado na planilha (Taças, Fogos, Sparkles, Mesa, Champanhe, Extensão e Furadeira), saldo calculado a partir de entradas e saídas, cadastro de novos itens e alerta quando um mínimo configurado é atingido. Os saldos iniciais não são presumidos: registre o inventário físico como movimentações de entrada.
+
+### Aplicar as migrations da Fase 2
+
+No Supabase → SQL Editor, execute em ordem:
+
+1. `supabase/migrations/202611030001_agenda_estoque_clientes.sql`
+2. `supabase/migrations/202611030002_client_event_details.sql`
+3. `supabase/migrations/202611030003_link_events_to_contracts.sql`
+
+A primeira migration cria clientes, pré-cadastros, eventos, itens e movimentações de estoque, além das políticas RLS. As seguintes guardam dados de evento recebidos no pré-cadastro e associam eventos aos contratos.
+
+### Segurança do link público
+
+O link usa um token aleatório de alta entropia; somente o hash SHA-256 é persistido. A submissão é validada no servidor com a chave service role, sem expor essa chave ao navegador. O token expira em 14 dias e a submissão é condicional ao status pendente para impedir reutilização concorrente.
+
+Em ambiente local, mantenha `SUPABASE_SERVICE_ROLE_KEY` apenas em `.env.local`. Em produção, se habilitar os links públicos, configure a mesma variável como segredo server-side da plataforma de hospedagem (sem prefixo `NEXT_PUBLIC_`). Nunca registre essa chave no GitHub.
