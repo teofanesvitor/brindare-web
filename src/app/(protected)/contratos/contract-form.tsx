@@ -15,7 +15,7 @@ function capitalizeWords(value: string) {
 }
 function Field({ label, name, type = "text", required = false, defaultValue = "", min, step }: FieldProps) {
   function capitalize(event: FocusEvent<HTMLInputElement>) {
-    if (!["email", "cpf", "phone"].includes(name) && type !== "date" && type !== "time" && type !== "number") {
+    if (!["email", "cpf", "phone", "rg"].includes(name) && type !== "date" && type !== "time" && type !== "number") {
       event.currentTarget.value = capitalizeWords(event.currentTarget.value);
     }
   }
