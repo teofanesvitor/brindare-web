@@ -1,6 +1,6 @@
 import { CalendarDays, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { createEvent } from "@/actions/operations";
+import { createEvent, updateEventStatus } from "@/actions/operations";
 
 const money = (c: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(c / 100);
 const date = (v: string) => new Date(`${v}T12:00:00`).toLocaleDateString("pt-BR");
@@ -37,7 +37,7 @@ export default async function AgendaPage() {
     </section>
     <section className="operation-panel">
       <div className="operation-title"><div><h2><CalendarDays size={17}/> Agenda futura</h2><p>{events?.length ?? 0} evento(s) futuro(s), ordenados por data.</p></div></div>
-      {error ? <p className="operation-empty">Não foi possível carregar os eventos. Verifique se a migration de agenda foi aplicada.</p> : !events?.length ? <p className="operation-empty">Nenhum evento futuro cadastrado.</p> : <div className="operation-table-wrap"><table className="operation-table"><thead><tr><th>Data / hora</th><th>Cliente</th><th>Local</th><th>Pacote</th><th>Itens</th><th>Valor</th><th>Saldo</th><th>Status</th></tr></thead><tbody>{events.map(e=><tr key={e.id}><td><strong>{date(e.event_date)}</strong><small>{e.event_time?.slice(0,5) || "Horário a definir"}</small></td><td>{e.client_name}</td><td>{e.venue}</td><td>{e.package_name}</td><td><small>Taças {e.glasses} · Fogos {e.fireworks} · Sparkles {e.sparkles} · Mesa {e.tables} · Champ. {e.champagne}</small></td><td>{money(e.total_cents)}</td><td>{money(e.balance_cents)}</td><td><span className={`status-pill status-${e.status.toLowerCase().replaceAll(" ","-")}`}>{e.status}</span></td></tr>)}</tbody></table></div>}
+      {error ? <p className="operation-empty">Não foi possível carregar os eventos. Verifique se a migration de agenda foi aplicada.</p> : !events?.length ? <p className="operation-empty">Nenhum evento futuro cadastrado.</p> : <div className="operation-table-wrap"><table className="operation-table"><thead><tr><th>Data / hora</th><th>Cliente</th><th>Local</th><th>Pacote</th><th>Itens</th><th>Valor</th><th>Saldo</th><th>Status</th><th>Atualizar</th></tr></thead><tbody>{events.map(e=><tr key={e.id}><td><strong>{date(e.event_date)}</strong><small>{e.event_time?.slice(0,5) || "Horário a definir"}</small></td><td>{e.client_name}</td><td>{e.venue}</td><td>{e.package_name}</td><td><small>Taças {e.glasses} · Fogos {e.fireworks} · Sparkles {e.sparkles} · Mesa {e.tables} · Champ. {e.champagne}</small></td><td>{money(e.total_cents)}</td><td>{money(e.balance_cents)}</td><td><span className={`status-pill status-${e.status.toLowerCase().replaceAll(" ","-")}`}>{e.status}</span></td><td><form action={updateEventStatus} className="event-status-form"><input type="hidden" name="event_id" value={e.id}/><select name="status" defaultValue={e.status}><option>A pagar</option><option>Confirmado</option><option>Pago</option><option>Realizado</option><option>Cancelado</option></select><button type="submit">Salvar</button></form></td></tr>)}</tbody></table></div>}
     </section>
   </main>;
 }
