@@ -19,7 +19,7 @@ export async function generateContractAction(formData: FormData): Promise<Contra
   const supabase = await createClient();
   try {
     const generated = await generateContract(parsed.data);
-    const { error } = await supabase.from("contracts").insert({
+    const { data: savedContract, error } = await supabase.from("contracts").insert({
       created_by: user.id,
       client_name: parsed.data.client,
       event_date: parsed.data.eventDate,
