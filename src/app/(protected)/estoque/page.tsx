@@ -6,7 +6,7 @@ export default async function EstoquePage() {
   const supabase = await createClient();
   const [{ data: items, error }, { data: movements }] = await Promise.all([
     supabase.from("inventory_items").select("id,name,unit,minimum_quantity,active").eq("active", true).order("name"),
-    supabase.from("inventory_movements").select("id,item_id,movement_type,quantity,description,created_at,inventory_items(name,unit)").order("created_at", { ascending: false }).limit(30),
+    supabase.from("inventory_movements").select("id,item_id,movement_type,quantity,description,created_at,inventory_items(name,unit)").order("created_at", { ascending: false }),
   ]);
   const stock = (items ?? []).map(item => {
     const rows = (movements ?? []).filter(m => m.item_id === item.id);
@@ -36,7 +36,7 @@ export default async function EstoquePage() {
       </section>
     </div>
     <section className="operation-panel"><div className="operation-title"><div><h2><ArrowUpCircle size={17}/> Movimentações recentes</h2><p>Últimas 30 entradas e saídas.</p></div></div>
-      {error ? <p className="operation-empty">Não foi possível carregar o estoque. Verifique a migration.</p> : !movements?.length ? <p className="operation-empty">Nenhuma movimentação registrada. Cadastre as quantidades atuais como entradas para iniciar o saldo.</p> : <div className="operation-table-wrap"><table className="operation-table"><thead><tr><th>Data</th><th>Produto</th><th>Tipo</th><th>Quantidade</th><th>Descrição</th></tr></thead><tbody>{movements.map(m=><tr key={m.id}><td>{new Date(m.created_at).toLocaleString("pt-BR")}</td><td>{(m.inventory_items as unknown as {name:string})?.name}</td><td>{m.movement_type === "entrada" ? "Entrada" : m.movement_type === "saida" ? "Saída" : "Ajuste"}</td><td>{m.quantity}</td><td>{m.description || "—"}</td></tr>)}</tbody></table></div>}
+      {error ? <p className="operation-empty">Não foi possível carregar o estoque. Verifique a migration.</p> : !movements?.length ? <p className="operation-empty">Nenhuma movimentação registrada. Cadastre as quantidades atuais como entradas para iniciar o saldo.</p> : <div className="operation-table-wrap"><table className="operation-table"><thead><tr><th>Data</th><th>Produto</th><th>Tipo</th><th>Quantidade</th><th>Descrição</th></tr></thead><tbody>{movements.slice(0,30).map(m=><tr key={m.id}><td>{new Date(m.created_at).toLocaleString("pt-BR")}</td><td>{(m.inventory_items as unknown as {name:string})?.name}</td><td>{m.movement_type === "entrada" ? "Entrada" : m.movement_type === "saida" ? "Saída" : "Ajuste"}</td><td>{m.quantity}</td><td>{m.description || "—"}</td></tr>)}</tbody></table></div>}
     </section>
   </main>;
 }
