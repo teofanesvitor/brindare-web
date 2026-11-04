@@ -11,7 +11,7 @@ export default async function EstoquePage() {
   const stock = (items ?? []).map(item => {
     const rows = (movements ?? []).filter(m => m.item_id === item.id);
     const quantity = rows.reduce((sum, m) => sum + (m.movement_type === "entrada" ? Number(m.quantity) : m.movement_type === "saida" ? -Number(m.quantity) : Number(m.quantity)), 0);
-    return { ...item, quantity, critical: quantity <= Number(item.minimum_quantity) };
+    return { ...item, quantity, critical: Number(item.minimum_quantity) > 0 && quantity <= Number(item.minimum_quantity) };
   });
   return <main className="content">
     <div className="page-heading"><div><div className="eyebrow">Operação</div><h1>Estoque</h1><p>Controle entradas, saídas e níveis mínimos dos materiais da Brindare.</p></div></div>
