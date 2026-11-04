@@ -133,3 +133,17 @@ export async function createInventoryMovement(form: FormData) {
   if (error) throw new Error(error.message);
   revalidatePath("/estoque");
 }
+
+export async function updateEventStatus(form: FormData) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const id = text(form, "event_id");
+  const status = text(form, "status");
+  if (!id || !["A pagar", "Confirmado", "Pago", "Realizado", "Cancelado"].includes(status)) {
+    throw new Error("Status de evento inválido.");
+  }
+  const { error } = await supabase.from("events").update({ status }).eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/agenda");
+  revalidatePath("/dashboard");
+}
