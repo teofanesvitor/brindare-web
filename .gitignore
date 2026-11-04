@@ -1,11 +1,25 @@
+# Dependências
 node_modules/
+
+# Next.js
 .next/
 out/
+build/
 dist/
-coverage/
-.env
-.env.local
-.env.*.local
+
+# Variáveis de ambiente
+.env*
 !.env.example
+
+# Arquivos locais
 .DS_Store
 *.log
+
+# Testes
+coverage/
+
+# Chaves e credenciais
+*.pem
+*.key
+credentials.json
+token.json
