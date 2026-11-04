@@ -115,10 +115,19 @@ export async function createInventoryItem(form: FormData) {
 export async function createInventoryMovement(form: FormData) {
   const { user } = await requireAdmin();
   const supabase = await createClient();
+  const itemId = text(form, "item_id");
   const quantity = number(form, "quantity");
-  if (!text(form, "item_id") || quantity <= 0) throw new Error("Selecione um item e informe uma quantidade maior que zero.");
+  const movementType = text(form, "movement_type");
+  if (!itemId || quantity <= 0) throw new Error("Selecione um item e informe uma quantidade maior que zero.");
+  if (movementType !== "entrada" && movementType !== "saida") throw new Error("Tipo de movimentação inválido.");
+  if (movementType === "saida") {
+    const { data: history, error: historyError } = await supabase.from("inventory_movements").select("movement_type,quantity").eq("item_id", itemId);
+    if (historyError) throw new Error(historyError.message);
+    const balance = (history || []).reduce((sum, row) => sum + (row.movement_type === "entrada" ? Number(row.quantity) : -Number(row.quantity)), 0);
+    if (quantity > balance) throw new Error(`Saldo insuficiente. Disponível: ${balance}.`);
+  }
   const { error } = await supabase.from("inventory_movements").insert({
-    item_id: text(form, "item_id"), movement_type: text(form, "movement_type"),
+    item_id: itemId, movement_type: movementType,
     quantity, description: text(form, "description") || null, created_by: user.id,
   });
   if (error) throw new Error(error.message);
