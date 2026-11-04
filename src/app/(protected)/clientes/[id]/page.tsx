@@ -17,14 +17,14 @@ export default async function ReviewClientPage({ params }: { params: Promise<{ i
       <form action={convertIntakeToClient} className="operation-form">
         <input type="hidden" name="intake_id" value={intake.id}/>
         <label>Nome completo *<input name="full_name" required defaultValue={p.full_name || ""}/></label>
-        <label>CPF<input name="cpf" defaultValue={p.cpf || ""}/></label>
+        <label>CPF *<input name="cpf" required inputMode="numeric" defaultValue={p.cpf || ""}/></label>
         <label>RG<input name="rg" defaultValue={p.rg || ""}/></label>
         <label>Telefone<input name="phone" defaultValue={p.phone || ""}/></label>
         <label>E-mail<input name="email" type="email" defaultValue={p.email || ""}/></label>
-        <label>Endereço<input name="address" defaultValue={p.address || ""}/></label>
+        <label>Endereço *<input name="address" required defaultValue={p.address || ""}/></label>
         <label>Bairro<input name="neighborhood" defaultValue={p.neighborhood || ""}/></label>
         <label>Município<input name="city" defaultValue={p.city || ""}/></label>
-        <div className="intake-event-summary"><strong>Informações do evento enviadas</strong><span>Data: {p.event_date || "Não informada"} · Horário: {p.event_time || "Não informado"}</span><span>Local: {p.venue || "Não informado"} · Cerimonial: {p.ceremony_contact || "Não informado"}</span><span>Indicação: {p.referral || "Não informada"}</span></div>
+        <div className="intake-event-summary"><strong>Informações do evento enviadas</strong><span>Data: {p.event_date || "Não informada"} · Horário: {p.event_time || "Não informado"} · Brinde: {p.toast_time || "Não informado"}</span><span>Local: {p.venue || "Não informado"} · Cerimonial: {p.ceremony_contact || "Não informado"}</span><span>Indicação: {p.referral || "Não informada"}</span></div>
         <button className="operation-submit" type="submit">Finalizar cadastro e preparar contrato</button>
       </form>
     </section>
