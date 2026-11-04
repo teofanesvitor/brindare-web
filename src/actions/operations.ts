@@ -10,6 +10,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 const text = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
 const number = (form: FormData, key: string) => Math.max(0, Number(form.get(key) || 0));
+const titleCase = (value: string) => value.toLocaleLowerCase("pt-BR").replace(/(^|\\s|[-'])\\p{L}/gu, (match) => match.toLocaleUpperCase("pt-BR"));
+const formatCpf = (value: string) => { const d = value.replace(/\\D/g, ""); return d.length === 11 ? d.replace(/(\\d{3})(\\d{3})(\\d{3})(\\d{2})/, "$1.$2.$3-$4") : value; };
+const validCpf = (value: string) => {
+  const cpf = value.replace(/\\D/g, "");
+  if (cpf.length !== 11 || /^(\\d)\\1{10}$/.test(cpf)) return false;
+  const digit = (base: string, factor: number) => { let sum = 0; for (const char of base) sum += Number(char) * factor--; const result = (sum * 10) % 11; return result === 10 ? 0 : result; };
+  return digit(cpf.slice(0, 9), 10) === Number(cpf[9]) && digit(cpf.slice(0, 10), 11) === Number(cpf[10]);
+};
 
 export async function createClientIntakeLink() {
   const { user } = await requireAdmin();
@@ -28,15 +36,18 @@ export async function submitClientIntake(form: FormData) {
   const token = text(form, "token");
   if (!/^[A-Za-z0-9_-]{40,60}$/.test(token)) redirect("/cadastro-invalido");
   const payload = {
-    full_name: text(form, "full_name"), phone: text(form, "phone"),
-    email: text(form, "email").toLowerCase(), cpf: text(form, "cpf"),
-    rg: text(form, "rg"), address: text(form, "address"),
-    neighborhood: text(form, "neighborhood"), city: text(form, "city"),
+    full_name: titleCase(text(form, "full_name")), phone: text(form, "phone"),
+    email: text(form, "email").toLowerCase(), cpf: formatCpf(text(form, "cpf")),
+    rg: text(form, "rg"), address: titleCase(text(form, "address")),
+    neighborhood: titleCase(text(form, "neighborhood")), city: titleCase(text(form, "city")),
     event_date: text(form, "event_date"), event_time: text(form, "event_time"),
-    venue: text(form, "venue"), ceremony_contact: text(form, "ceremony_contact"),
-    referral: text(form, "referral"),
+    toast_time: text(form, "toast_time"), venue: titleCase(text(form, "venue")),
+    ceremony_contact: titleCase(text(form, "ceremony_contact")), referral: titleCase(text(form, "referral")),
   };
-  if (payload.full_name.length < 3 || payload.phone.length < 8 || !payload.email.includes("@")) {
+  if (payload.full_name.length < 3 || payload.phone.replace(/\\D/g, "").length < 8 ||
+      !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(payload.email) ||
+      !validCpf(payload.cpf) || !payload.address || !payload.event_date ||
+      !/^\\d{2}:\\d{2}$/.test(payload.event_time) || !payload.venue) {
     redirect(`/cadastro-cliente/${token}?error=invalid`);
   }
   const admin = createAdminClient();
@@ -67,7 +78,7 @@ export async function convertIntakeToClient(form: FormData) {
     neighborhood: text(form, "neighborhood") || p.neighborhood || null,
     city: text(form, "city") || p.city || null,
     event_details: {
-      event_date: p.event_date || "", event_time: p.event_time || "",
+      event_date: p.event_date || "", event_time: p.event_time || "", toast_time: p.toast_time || "",
       venue: p.venue || "", ceremony_contact: p.ceremony_contact || "", referral: p.referral || "",
     },
   };
