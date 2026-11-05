@@ -1,0 +1,1 @@
+export default function CadastroInvalidoPage(){return <main className="public-intake-shell"><section className="public-intake-card"><div className="eyebrow">Brindare</div><h1>Link indisponível</h1><p>Este link expirou, já foi utilizado ou não é válido. Solicite um novo link à equipe Brindare.</p></section></main>;}

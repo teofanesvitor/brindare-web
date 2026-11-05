@@ -19,7 +19,7 @@ export async function generateContractAction(formData: FormData): Promise<Contra
   const supabase = await createClient();
   try {
     const generated = await generateContract(parsed.data);
-    const { error } = await supabase.from("contracts").insert({
+    const { data: savedContract, error } = await supabase.from("contracts").insert({
       created_by: user.id,
       client_name: parsed.data.client,
       event_date: parsed.data.eventDate,
@@ -34,10 +34,35 @@ export async function generateContractAction(formData: FormData): Promise<Contra
       file_name: generated.name,
       input_snapshot: parsed.data,
       status: "generated",
-    });
+    }).select("id").single();
     if (error) {
-      // Os arquivos continuam disponíveis no Drive; a mensagem orienta reconciliação manual.
       return { ok: false, message: `Arquivos gerados no Google Drive, mas não foi possível registrar no sistema: ${error.message}` };
+    }
+    {
+      const { error: eventError } = await supabase.from("events").insert({
+        contract_id: savedContract.id,
+        client_id: parsed.data.clientId || null,
+        client_name: parsed.data.client,
+        event_date: parsed.data.eventDate,
+        event_time: parsed.data.eventTime || null,
+        toast_time: parsed.data.toastTime || null,
+        venue: parsed.data.venue,
+        package_name: parsed.data.packageName,
+        total_cents: Math.round(parsed.data.total * 100),
+        deposit_cents: Math.round(parsed.data.deposit * 100),
+        balance_cents: Math.round(parsed.data.balance * 100),
+        travel_cents: Math.round(parsed.data.travel * 100),
+        status: "A pagar",
+        glasses: parsed.data.tacas,
+        fireworks: parsed.data.fogos,
+        sparkles: parsed.data.sparkles,
+        tables: parsed.data.mesa,
+        champagne: parsed.data.champagne,
+        created_by: user.id,
+      });
+      if (eventError) {
+        return { ok: false, message: `Contrato gerado e salvo, mas o evento não entrou na agenda: ${eventError.message}` };
+      }
     }
     return { ok: true, name: generated.name, documentUrl: generated.documentUrl, pdfUrl: generated.pdfUrl };
   } catch (error) {
