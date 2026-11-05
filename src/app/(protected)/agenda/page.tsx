@@ -31,16 +31,16 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
     const signedContracts = [...((event.event_signed_contracts ?? []) as {
       id: string; storage_path: string; original_file_name: string; signed_at: string; created_at: string;
     }[])].sort((a, b) => new Date(b.signed_at).getTime() - new Date(a.signed_at).getTime());
-    const latestSigned = signedContracts[0] ?? null;
-    const signedUrlResult = latestSigned
-      ? await supabase.storage.from("contracts").createSignedUrl(
-          latestSigned.storage_path, 3600, { download: latestSigned.original_file_name }
-        )
-      : null;
+    const signedContractsWithUrls = await Promise.all(signedContracts.map(async (contract) => {
+      const result = await supabase.storage.from("contracts").createSignedUrl(
+        contract.storage_path, 3600, { download: contract.original_file_name }
+      );
+      return { ...contract, url: result.data?.signedUrl ?? null };
+    }));
+    const latestSigned = signedContractsWithUrls[0] ?? null;
     const received = payments.reduce((sum, payment) => sum + Number(payment.amount_cents), 0);
     return {
-      ...event, payments, signedContracts, latestSigned,
-      signedUrl: signedUrlResult?.data?.signedUrl ?? null,
+      ...event, payments, signedContracts: signedContractsWithUrls, latestSigned,
       received, outstanding: Math.max(0, Number(event.total_cents) - received),
     };
   }));
@@ -99,15 +99,17 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
                   <td>
                     {event.latestSigned ? <div className="signed-contract-state">
                       <span className="signed-contract-received"><FileCheck2 size={13}/> Recebido</span>
-                      <small>{date(event.latestSigned.signed_at.slice(0, 10))} · {event.signedContracts.length} arquivo(s)</small>
-                      {event.signedUrl ? <a className="signed-contract-download" href={event.signedUrl} target="_blank" rel="noreferrer">{event.latestSigned.original_file_name}</a> : <small>Link indisponível</small>}
+                      <small>Recebido em {date(event.latestSigned.signed_at.slice(0, 10))} · {event.signedContracts.length} versão(ões)</small>
+                      {event.signedContracts.map((contract) => contract.url
+                        ? <a className="signed-contract-download" key={contract.id} href={contract.url} target="_blank" rel="noreferrer">{contract.original_file_name}</a>
+                        : <small key={contract.id}>Arquivo indisponível: {contract.original_file_name}</small>)}
                     </div> : <span className="signed-contract-pending">{event.contract_id ? "Aguardando assinatura" : "Sem contrato gerado"}</span>}
                     <details className="signed-contract-upload">
                       <summary><FileUp size={13}/> {event.latestSigned ? "Enviar nova versão" : "Receber contrato assinado"}</summary>
                       <form action={uploadSignedEventContract} className="signed-contract-form">
                         <input type="hidden" name="event_id" value={event.id}/>
                         <label>Arquivo assinado<input type="file" name="signed_contract" accept=".pdf,.docx,.jpg,.jpeg,.png,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png" required/></label>
-                        <small>PDF, DOCX, JPG ou PNG · até 12 MB. Arquivos anteriores serão preservados.</small>
+                        <small>Envie após conferir as assinaturas das duas partes. PDF, DOCX, JPG ou PNG · até 12 MB. Versões anteriores serão preservadas.</small>
                         <button type="submit">Enviar arquivo</button>
                       </form>
                     </details>
