@@ -80,7 +80,7 @@ export async function generateContract(input: ContractInput, supabase: SupabaseC
     contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", upsert: false,
   });
   if (uploadError) throw new Error(`Falha ao armazenar DOCX no Supabase: ${uploadError.message}`);
-  const { data: signed, error: signedError } = await supabase.storage.from(STORAGE_BUCKET).createSignedUrl(storagePath, 3600);
+  const { data: signed, error: signedError } = await supabase.storage.from(STORAGE_BUCKET).createSignedUrl(storagePath, 3600, { download: `${fileName}.docx` });
   if (signedError || !signed?.signedUrl) {
     await supabase.storage.from(STORAGE_BUCKET).remove([storagePath]);
     throw new Error(`DOCX salvo, mas não foi possível gerar o link temporário: ${signedError?.message || "URL indisponível"}`);
