@@ -196,3 +196,33 @@ export async function updateEventStatus(form: FormData) {
   revalidatePath("/agenda");
   revalidatePath("/dashboard");
 }
+
+
+export async function registerEventPayment(form: FormData) {
+  const { user } = await requireAdmin();
+  const supabase = await createClient();
+  const eventId = text(form, "event_id");
+  const amount = number(form, "amount");
+  const paidAt = text(form, "paid_at");
+  const paymentMethod = text(form, "payment_method");
+  const notes = text(form, "notes");
+
+  if (!eventId || !Number.isFinite(amount) || amount <= 0) {
+    throw new Error("Selecione o evento e informe um valor válido.");
+  }
+  if (paidAt && !/^\\d{4}-\\d{2}-\\d{2}$/.test(paidAt)) {
+    throw new Error("Informe uma data de pagamento válida.");
+  }
+
+  const { error } = await supabase.rpc("register_event_payment", {
+    p_event_id: eventId,
+    p_amount_cents: Math.round(amount * 100),
+    p_paid_at: paidAt || new Date().toISOString().slice(0, 10),
+    p_payment_method: paymentMethod || null,
+    p_notes: notes || null,
+  });
+  if (error) throw new Error(error.message || "Não foi possível registrar o pagamento.");
+
+  revalidatePath("/agenda");
+  revalidatePath("/dashboard");
+}
