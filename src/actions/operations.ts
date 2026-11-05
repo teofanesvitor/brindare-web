@@ -102,7 +102,7 @@ export async function convertIntakeToClient(form: FormData) {
     // Atualiza somente os dados pessoais revisados. event_details é preservado:
     // os dados do novo evento vêm diretamente desta solicitação no formulário do contrato.
     const { error: updateClientError } = await supabase.from("clients").update({
-      full_name: client.full_name, cpf: client.cpf, rg: client.rg, phone: client.phone,
+      full_name: client.full_name, rg: client.rg, phone: client.phone,
       email: client.email, address: client.address, neighborhood: client.neighborhood, city: client.city,
     }).eq("id", clientId);
     if (updateClientError) throw new Error("O cliente já existe, mas não foi possível atualizar seus dados: " + updateClientError.message);
