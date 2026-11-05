@@ -64,7 +64,7 @@ function escapeXml(value: string): string {
 }
 function replaceParagraphContaining(xml: string, key: string, replace: (paragraph: string) => string): string {
   // Limita a busca a um único parágrafo Word; não atravessa </w:p>.
-  const paragraphs = /<w:p\\b[^>]*>[\\s\\S]*?<\\/w:p>/g;
+  const paragraphs = /<w:p\b[^>]*>[\s\S]*?<\/w:p>/g;
   let found = false;
   const updated = xml.replace(paragraphs, (paragraph) => {
     if (found || !paragraph.includes(`{{${key}}}`)) return paragraph;
@@ -82,17 +82,17 @@ export function fillDocxTemplate(template: Buffer, values: Record<string, string
   if (!values.CLAUSULA_FOGOS?.trim()) xml = replaceParagraphContaining(xml, "CLAUSULA_FOGOS", () => "");
   if (!values.DESLOCAMENTO?.trim() || values.DESLOCAMENTO === "0,00") xml = replaceParagraphContaining(xml, "DESLOCAMENTO", () => "");
   if (values.ITENS_PACOTE !== undefined) {
-    const lines = values.ITENS_PACOTE.split(/\\r?\\n/).filter((line) => line.trim());
+    const lines = values.ITENS_PACOTE.split(/\r?\n/).filter((line) => line.trim());
     xml = replaceParagraphContaining(xml, "ITENS_PACOTE", (paragraph) =>
       lines.map((line) => paragraph.replace("{{ITENS_PACOTE}}", escapeXml(line))).join(""),
     );
   }
   for (const [key, raw] of Object.entries(values)) {
     if (key === "ITENS_PACOTE") continue;
-    const text = escapeXml(raw).replace(/\\r?\\n/g, "</w:t><w:br/><w:t xml:space=\\"preserve\\">");
+    const text = escapeXml(raw).replace(/\r?\n/g, "</w:t><w:br/><w:t xml:space=\"preserve\">");
     xml = xml.replaceAll(`{{${key}}}`, text);
   }
-  const unresolved = [...xml.matchAll(/\\{\\{([A-Z0-9_]+)\\}\\}/g)].map((match) => match[1]);
+  const unresolved = [...xml.matchAll(/\{\{([A-Z0-9_]+)\}\}/g)].map((match) => match[1]);
   if (unresolved.length) throw new Error(`Existem chaves sem valor no modelo: ${[...new Set(unresolved)].join(", ")}.`);
   document.data = Buffer.from(xml, "utf8");
   return zipEntries(entries);
