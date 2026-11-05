@@ -48,3 +48,12 @@
 @media(max-width:640px){.operation-form,.operation-columns{grid-template-columns:1fr}.operation-panel{padding:15px}.inventory-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.inventory-card{padding:12px}.inventory-card>strong{font-size:23px}.intake-row{align-items:flex-start;flex-direction:column}.intake-actions{width:100%;justify-content:space-between}.public-intake-card h1{font-size:27px}}
 \n.nav-count{margin-left:auto;min-width:19px;height:19px;padding:0 5px;border-radius:20px;background:#b54a32;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800}\n\n.event-status-form{display:flex;align-items:center;gap:5px}.event-status-form select{height:31px;border:1px solid var(--line);border-radius:6px;font-size:10px;padding:0 5px;background:#fff}.event-status-form button{height:31px;border:0;border-radius:6px;background:#242321;color:#fff;font-size:10px;font-weight:700;padding:0 8px;cursor:pointer}\n
 .operation-form .full-width{grid-column:1/-1}.field-error{color:#a33b2b;font-size:11px;font-weight:600}
+
+
+/* Ações para copiar e compartilhar o link de pré-cadastro */
+.intake-link-actions{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin:8px 0 2px}
+.intake-link-actions .operation-submit{text-decoration:none}
+.intake-link-actions .intake-whatsapp{background:#247a4b}
+.intake-link-actions .intake-whatsapp:hover{background:#1c633d}
+.intake-link-actions .operation-hint{flex-basis:100%}
+@media(max-width:520px){.intake-link-actions{align-items:stretch;flex-direction:column}.intake-link-actions .operation-submit{width:100%}}
