@@ -19,9 +19,9 @@ function shiftDays(value: Date, days: number): Date {
   const result = new Date(value); result.setUTCDate(result.getUTCDate() + days); return result;
 }
 function formatPhone(value: string): string {
-  const digits = value.replace(/\\D/g, "");
+  const digits = value.replace(/\D/g, "");
   if (digits.length !== 11) return value;
-  return digits.replace(/(\\d{2})(\\d)(\\d{4})(\\d{4})/, "($1) $2 $3-$4");
+  return digits.replace(/(\d{2})(\d)(\d{4})(\d{4})/, "($1) $2 $3-$4");
 }
 function formatTime(value: string): string {
   return value.trim().replace(":", "h");
