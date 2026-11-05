@@ -57,3 +57,45 @@
 .intake-link-actions .intake-whatsapp:hover{background:#1c633d}
 .intake-link-actions .operation-hint{flex-basis:100%}
 @media(max-width:520px){.intake-link-actions{align-items:stretch;flex-direction:column}.intake-link-actions .operation-submit{width:100%}}
+
+/* Agenda financeira: filtros, resumo e lançamentos de recebimentos */
+.agenda-finance-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:-8px 0 18px}
+.agenda-finance-summary article{background:#fff;border:1px solid var(--line);border-radius:12px;padding:15px 17px;display:grid;gap:7px}
+.agenda-finance-summary span{font-size:11px;color:var(--muted);font-weight:600}
+.agenda-finance-summary strong{font-size:21px;letter-spacing:-.5px}
+.agenda-filters{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.agenda-filters select{height:34px;border:1px solid var(--line);border-radius:7px;padding:0 9px;background:#fff;font-size:11px}
+.agenda-filters button,.payment-form button{height:34px;border:0;border-radius:7px;background:var(--ink);color:#fff;padding:0 12px;font-size:11px;font-weight:700;cursor:pointer}
+.agenda-table{min-width:1120px}
+.payment-details summary{display:inline-flex;align-items:center;gap:5px;cursor:pointer;color:#806614;font-size:11px;font-weight:700;white-space:nowrap}
+.payment-details[open] summary{margin-bottom:10px}
+.payment-form{width:220px;display:grid;gap:8px;padding:11px;border:1px solid var(--line);border-radius:9px;background:#fcfbf8}
+.payment-form label{display:grid;gap:4px;font-size:10px;font-weight:700;color:#625f58}
+.payment-form input,.payment-form select{width:100%;height:32px;border:1px solid var(--line);border-radius:6px;padding:0 7px;background:#fff;font-size:11px;min-width:0}
+.payment-form button{width:100%;margin-top:3px}
+.payment-complete{font-size:11px;font-weight:700;color:#347044}
+.status-pago{background:#e8f5e9;color:#276738}
+@media(max-width:760px){.agenda-finance-summary{grid-template-columns:1fr}.operation-title{align-items:flex-start;flex-direction:column}.agenda-filters{width:100%}.agenda-filters select{flex:1;min-width:0}}
+
+
+/* Recebimento e consulta de contratos assinados na agenda */
+.signed-contract-state{display:grid;gap:5px;min-width:145px}
+.signed-contract-received{display:inline-flex;align-items:center;gap:5px;color:#347044;font-size:11px;font-weight:800}
+.signed-contract-state small{font-size:10px;color:var(--muted)}
+.signed-contract-download{display:block;max-width:190px;overflow-wrap:anywhere;color:#70550b;text-decoration:underline;font-size:10px;font-weight:700}
+.signed-contract-pending{display:inline-block;color:#85650d;background:#fff4d5;border-radius:20px;padding:5px 8px;font-size:10px;font-weight:700;white-space:nowrap}
+.signed-contract-upload{margin-top:9px}
+.signed-contract-upload summary{display:inline-flex;align-items:center;gap:5px;cursor:pointer;color:#806614;font-size:10px;font-weight:700;white-space:nowrap}
+.signed-contract-form{width:240px;display:grid;gap:8px;padding:11px;margin-top:8px;border:1px solid var(--line);border-radius:9px;background:#fcfbf8}
+.signed-contract-form label{display:grid;gap:5px;font-size:10px;font-weight:700;color:#625f58}
+.signed-contract-form input[type=file]{width:100%;font-size:10px;min-width:0}
+.signed-contract-form small{font-size:9px;line-height:1.45;color:var(--muted)}
+.signed-contract-form button{height:34px;border:0;border-radius:7px;background:var(--ink);color:#fff;font-size:10px;font-weight:700;cursor:pointer}
+
+
+/* Itens contratados visíveis diretamente na linha da agenda */
+.agenda-package-cell{min-width:190px;max-width:280px;white-space:normal!important}
+.agenda-package-cell>strong{display:block;margin-bottom:6px}
+.agenda-item-list{display:flex;flex-wrap:wrap;gap:4px;max-width:270px}
+.agenda-item-list span{display:inline-flex;align-items:center;padding:3px 6px;border:1px solid var(--line);border-radius:5px;background:#faf8f3;color:#625d50;font-size:10px;line-height:1.3;white-space:normal}
+.agenda-item-list small{font-size:10px;color:var(--muted)}
