@@ -46,6 +46,15 @@ function Field({ label, name, type = "text", required = false, defaultValue = ""
 const packagePrices: Record<string, number> = { "Essencial": 450, "Celebração": 650, "Luxo": 900 };
 const centsToNumber = (cents: number) => (cents / 100).toFixed(2);
 const formatCurrency = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+function parseCurrencyInput(value: string): number {
+  const raw = value.replace(/R\\$|\\s/g, "");
+  if (!raw) return 0;
+  const normalized = raw.includes(",")
+    ? raw.replace(/\\./g, "").replace(",", ".")
+    : raw;
+  const amount = Number(normalized);
+  return Number.isFinite(amount) && amount >= 0 ? Math.round(amount * 100) : 0;
+}
 
 function MoneyField({ label, name, cents, onChange }: { label: string; name: string; cents: number; onChange: (value: number) => void }) {
   return <label className="contract-field"><span>{label}</span>
