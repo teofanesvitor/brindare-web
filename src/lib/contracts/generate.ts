@@ -49,9 +49,9 @@ export async function generateContract(input: ContractInput, supabase: SupabaseC
   const toastText = input.toastTime?.trim()
     ? formatTime(input.toastTime)
     : `O horário para realização do brinde será definido até o dia ${toastDeadline}, devendo ser formalizado pelas partes, até essa data, por meio de termo aditivo ao presente contrato; e,`;
-  const cpfDigits = input.cpf.replace(/\\D/g, "");
+  const cpfDigits = input.cpf.replace(/\D/g, "");
   const cpfFormatted = cpfDigits.length === 11
-    ? cpfDigits.replace(/(\\d{3})(\\d{3})(\\d{3})(\\d{2})/, "$1.$2.$3-$4")
+    ? cpfDigits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")
     : input.cpf;
   const values: Record<string, string> = {
     CLIENTE: input.client, RG: input.rg || "Não informado", CPF: cpfDigits,
