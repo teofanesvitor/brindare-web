@@ -80,7 +80,7 @@ export function fillDocxTemplate(template: Buffer, values: Record<string, string
   }
   for (const [key, raw] of Object.entries(values)) {
     if (key === "ITENS_PACOTE") continue;
-    const text = escapeXml(raw).replace(/\r?\n/g, "</w:t><w:br/><w:t xml:space=\\\"preserve\\\">");
+    const text = escapeXml(raw).replace(/\r?\n/g, "</w:t><w:br/><w:t xml:space=\"preserve\">");
     xml = xml.replaceAll(`{{${key}}}`, text);
   }
   const unresolved = [...xml.matchAll(/\{\{([A-Z0-9_]+)\}\}/g)].map((match) => match[1]);
