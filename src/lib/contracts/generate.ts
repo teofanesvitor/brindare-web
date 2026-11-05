@@ -18,6 +18,11 @@ function formatDate(value: Date): string {
 function shiftDays(value: Date, days: number): Date {
   const result = new Date(value); result.setUTCDate(result.getUTCDate() + days); return result;
 }
+function formatPhone(value: string): string {
+  const digits = value.replace(/\\D/g, "");
+  if (digits.length !== 11) return value;
+  return digits.replace(/(\\d{2})(\\d)(\\d{4})(\\d{4})/, "($1) $2 $3-$4");
+}
 function formatTime(value: string): string {
   return value.trim().replace(":", "h");
 }
@@ -57,7 +62,7 @@ export async function generateContract(input: ContractInput, supabase: SupabaseC
     CLIENTE: input.client, RG: input.rg || "Não informado", CPF: cpfDigits,
     CPF_FORMATADO: cpfFormatted,
     ENDERECO: [input.address, input.neighborhood, input.city].filter(Boolean).join(", "),
-    TELEFONE: input.phone || "Não informado", EMAIL: input.email || "Não informado",
+    TELEFONE: input.phone ? formatPhone(input.phone) : "Não informado", EMAIL: input.email || "Não informado",
     PACOTE: input.packageName, ITENS_PACOTE: itensDoPacote(input), DATA: formatDate(eventDate),
     HORARIO: formatTime(input.eventTime), HORARIO_BRINDE: toastText,
     LOCAL: input.venue, VALOR: moeda(input.total), VALOR_EXTENSO: numeroPorExtenso(input.total),
