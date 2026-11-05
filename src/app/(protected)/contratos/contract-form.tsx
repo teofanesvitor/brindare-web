@@ -12,18 +12,18 @@ type InitialData = {
 type FieldProps = { label: string; name: string; type?: string; required?: boolean; defaultValue?: string | number; min?: string; step?: string };
 
 function maskCpf(value: string) {
-  const d = value.replace(/\\D/g, "").slice(0, 11);
-  return d.replace(/(\\d{3})(\\d)/, "$1.$2").replace(/(\\d{3})(\\d)/, "$1.$2").replace(/(\\d{3})(\\d{1,2})$/, "$1-$2");
+  const d = value.replace(/\D/g, "").slice(0, 11);
+  return d.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 }
 function maskPhone(value: string) {
-  const d = value.replace(/\\D/g, "").slice(0, 11);
+  const d = value.replace(/\D/g, "").slice(0, 11);
   if (!d) return "";
   if (d.length <= 2) return `(${d}`;
   if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
   return `(${d.slice(0, 2)}) ${d[2]} ${d.slice(3, 7)}-${d.slice(7)}`;
 }
 function capitalizeWords(value: string) {
-  return value.toLocaleLowerCase("pt-BR").replace(/(^|\\s|[-'])\\p{L}/gu, (match) => match.toLocaleUpperCase("pt-BR"));
+  return value.toLocaleLowerCase("pt-BR").replace(/(^|\s|[-'])\p{L}/gu, (match) => match.toLocaleUpperCase("pt-BR"));
 }
 function Field({ label, name, type = "text", required = false, defaultValue = "", min, step }: FieldProps) {
   const isCpf = name === "cpf", isPhone = name === "phone";
@@ -50,7 +50,7 @@ const formatCurrency = (cents: number) => (cents / 100).toLocaleString("pt-BR", 
 function MoneyField({ label, name, cents, onChange }: { label: string; name: string; cents: number; onChange: (value: number) => void }) {
   return <label className="contract-field"><span>{label}</span>
     <input type="text" inputMode="decimal" value={formatCurrency(cents)} onFocus={(event) => event.currentTarget.select()} onChange={(event) => {
-      const digits = event.currentTarget.value.replace(/\\D/g, "");
+      const digits = event.currentTarget.value.replace(/\D/g, "");
       onChange(digits ? Number(digits) : 0);
     }}/>
     <input type="hidden" name={name} value={centsToNumber(cents)}/>
