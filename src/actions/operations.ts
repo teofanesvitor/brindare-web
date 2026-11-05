@@ -54,10 +54,10 @@ export async function submitClientIntake(form: FormData) {
     toast_time: text(form, "toast_time"), venue: titleCase(text(form, "venue")),
     ceremony_contact: titleCase(text(form, "ceremony_contact")), referral: titleCase(text(form, "referral")),
   };
-  if (payload.full_name.length < 3 || !/^\\d{11}$/.test(payload.phone) ||
-      !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(payload.email) ||
+  if (payload.full_name.length < 3 || !/^\d{11}$/.test(payload.phone) ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email) ||
       !validCpf(payload.cpf) || !payload.address || !payload.event_date ||
-      !/^\\d{2}:\\d{2}$/.test(payload.event_time) || !payload.venue) {
+      !/^\d{2}:\d{2}$/.test(payload.event_time) || !payload.venue) {
     redirect(`/cadastro-cliente/${token}?error=invalid`);
   }
   const admin = createAdminClient();
