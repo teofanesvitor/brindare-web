@@ -91,7 +91,17 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
                   <td><strong>{date(event.event_date)}</strong><small>Evento: {event.event_time?.slice(0, 5) || "A definir"} · Brinde: {event.toast_time?.slice(0, 5) || "A definir"}</small></td>
                   <td>{event.client_name}{!event.contract_id && <small>Evento sem contrato gerado</small>}</td>
                   <td>{event.venue}</td>
-                  <td><strong>{event.package_name}</strong><small>Taças {event.glasses} · Fogos {event.fireworks} · Sparkles {event.sparkles} · Mesa {event.tables} · Champ. {event.champagne}</small></td>
+                  <td className="agenda-package-cell">
+                    <strong>{event.package_name}</strong>
+                    <div className="agenda-item-list">
+                      {Number(event.tables) > 0 && <span>Mesa de apoio</span>}
+                      {Number(event.glasses) > 0 && <span>{event.glasses} taças de vidro</span>}
+                      {Number(event.fireworks) > 0 && <span>{event.fireworks} {Number(event.fireworks) === 1 ? "par" : "pares"} de fogos indoor</span>}
+                      {Number(event.sparkles) > 0 && <span>{event.sparkles} {Number(event.sparkles) === 1 ? "sparkle" : "sparkles"}</span>}
+                      {Number(event.champagne) > 0 && <span>{event.champagne} {Number(event.champagne) === 1 ? "unidade de champagne" : "unidades de champagne"}</span>}
+                      {!Number(event.tables) && !Number(event.glasses) && !Number(event.fireworks) && !Number(event.sparkles) && !Number(event.champagne) && <small>Itens não informados</small>}
+                    </div>
+                  </td>
                   <td>{money(Number(event.total_cents))}<small>Entrada prevista: {money(Number(event.deposit_cents))}</small></td>
                   <td>{money(event.received)}<small>{event.payments.length} lançamento(s)</small></td>
                   <td><strong>{money(event.outstanding)}</strong></td>
