@@ -63,7 +63,7 @@ function escapeXml(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 }
 function removeOptionalParagraph(xml: string, key: string): string {
-  const paragraphs = /<w:p\\b[^>]*>[\\s\\S]*?<\\/w:p>/g;
+  const paragraphs = /<w:p\b[^>]*>[\s\S]*?<\/w:p>/g;
   let found = false;
   const updated = xml.replace(paragraphs, (paragraph) => {
     if (found || !paragraph.includes(`{{${key}}}`)) return paragraph;
