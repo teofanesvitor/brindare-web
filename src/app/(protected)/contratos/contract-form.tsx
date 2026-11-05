@@ -64,7 +64,7 @@ export function ContractForm({ initialData = {} }: { initialData?: InitialData }
       <Field label="Sparkles" name="sparkles" type="number" min="0" step="1" defaultValue="0"/>
       <Field label="Unidades de champanhe" name="champagne" type="number" min="0" step="1" defaultValue="0"/>
     </div><p className="contract-hint">Pacotes de taças: 30 (4 andares), 55 (5 andares) ou 90 (6 andares). O campo aceita edição livre para exceções, por exemplo 32, 57 ou 92 taças.</p><p className="contract-hint">A montagem e organização do cenário é incluída automaticamente, conforme o modelo atual. A cláusula de segurança é adicionada quando a quantidade de fogos for maior que zero.</p></section>
-    <button className="contract-submit" type="submit" disabled={pending}>{pending ? <><LoaderCircle size={17} className="spin"/> Gerando documentos…</> : <><FileText size={17}/> Gerar contrato + PDF</>}</button>
-    {result && (result.ok ? <div className="contract-success"><strong>Contrato gerado.</strong><span>{result.name}</span><div className="contract-links"><a href={result.documentUrl} target="_blank" rel="noreferrer"><FileText size={16}/> Abrir Google Docs</a><a href={result.pdfUrl} target="_blank" rel="noreferrer"><FileDown size={16}/> Abrir PDF</a></div></div> : <div className="contract-error">{result.message}</div>)}
+    <button className="contract-submit" type="submit" disabled={pending}>{pending ? <><LoaderCircle size={17} className="spin"/> Gerando DOCX…</> : <><FileText size={17}/> Gerar contrato DOCX</>}</button>
+    {result && (result.ok ? <div className="contract-success"><strong>Contrato gerado.</strong><span>{result.name}</span><div className="contract-links"><a href={result.documentUrl} target="_blank" rel="noreferrer"><FileDown size={16}/> Baixar contrato DOCX</a></div></div> : <div className="contract-error">{result.message}</div>)}
   </form>;
 }
