@@ -3,8 +3,8 @@ import { z } from "zod";
 const money = z.coerce.number().finite().min(0).max(10_000_000);
 const quantity = z.coerce.number().int().min(0).max(999);
 const validCpf = (value: string) => {
-  const cpf = value.replace(/\\D/g, "");
-  if (cpf.length !== 11 || /^(\\d)\\1{10}$/.test(cpf)) return false;
+  const cpf = value.replace(/\D/g, "");
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
   const digit = (base: string, factor: number) => {
     let sum = 0;
     for (const char of base) sum += Number(char) * factor--;
@@ -15,18 +15,18 @@ const validCpf = (value: string) => {
     digit(cpf.slice(0, 10), 11) === Number(cpf[10]);
 };
 
-const cpf = z.string().trim().transform((value) => value.replace(/\\D/g, ""))
+const cpf = z.string().trim().transform((value) => value.replace(/\D/g, ""))
   .refine(validCpf, "Informe um CPF válido.");
 const phone = z.string().optional().default("")
-  .transform((value) => value.replace(/\\D/g, ""))
-  .refine((value) => value === "" || /^\\d{11}$/.test(value),
+  .transform((value) => value.replace(/\D/g, ""))
+  .refine((value) => value === "" || /^\d{11}$/.test(value),
     "Informe um celular válido com DDD e 11 dígitos.");
 
 const packagePrices = { Essencial: 450, Celebração: 650, Luxo: 900 } as const;
 
 export const contractSchema = z.object({
   clientId: z.string().uuid().optional(),
-  eventDate: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/).refine((value) => {
+  eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => {
     const parsed = new Date(`${value}T12:00:00`);
     return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
   }, "Data do evento inválida."),
