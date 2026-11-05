@@ -10,13 +10,19 @@ import { createAdminClient } from "@/lib/supabase/admin";
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 const text = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
 const number = (form: FormData, key: string) => Math.max(0, Number(form.get(key) || 0));
-const titleCase = (value: string) => value.toLocaleLowerCase("pt-BR").replace(/(^|\\s|[-'])\\p{L}/gu, (match) => match.toLocaleUpperCase("pt-BR"));
-const formatCpf = (value: string) => { const d = value.replace(/\\D/g, ""); return d.length === 11 ? d.replace(/(\\d{3})(\\d{3})(\\d{3})(\\d{2})/, "$1.$2.$3-$4") : value; };
+const titleCase = (value: string) => value.toLocaleLowerCase("pt-BR").replace(/(^|\s|[-'])\p{L}/gu, (match) => match.toLocaleUpperCase("pt-BR"));
+const digits = (value: string) => value.replace(/\D/g, "");
 const validCpf = (value: string) => {
-  const cpf = value.replace(/\\D/g, "");
-  if (cpf.length !== 11 || /^(\\d)\\1{10}$/.test(cpf)) return false;
-  const digit = (base: string, factor: number) => { let sum = 0; for (const char of base) sum += Number(char) * factor--; const result = (sum * 10) % 11; return result === 10 ? 0 : result; };
-  return digit(cpf.slice(0, 9), 10) === Number(cpf[9]) && digit(cpf.slice(0, 10), 11) === Number(cpf[10]);
+  const cpf = digits(value);
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+  const digit = (base: string, factor: number) => {
+    let sum = 0;
+    for (const char of base) sum += Number(char) * factor--;
+    const result = (sum * 10) % 11;
+    return result === 10 ? 0 : result;
+  };
+  return digit(cpf.slice(0, 9), 10) === Number(cpf[9]) &&
+    digit(cpf.slice(0, 10), 11) === Number(cpf[10]);
 };
 
 export async function createClientIntakeLink() {
@@ -36,18 +42,18 @@ export async function submitClientIntake(form: FormData) {
   const token = text(form, "token");
   if (!/^[A-Za-z0-9_-]{40,60}$/.test(token)) redirect("/cadastro-invalido");
   const payload = {
-    full_name: titleCase(text(form, "full_name")), phone: text(form, "phone"),
-    email: text(form, "email").toLowerCase(), cpf: formatCpf(text(form, "cpf")),
+    full_name: titleCase(text(form, "full_name")), phone: digits(text(form, "phone")),
+    email: text(form, "email").toLowerCase(), cpf: digits(text(form, "cpf")),
     rg: text(form, "rg"), address: titleCase(text(form, "address")),
     neighborhood: titleCase(text(form, "neighborhood")), city: titleCase(text(form, "city")),
     event_date: text(form, "event_date"), event_time: text(form, "event_time"),
     toast_time: text(form, "toast_time"), venue: titleCase(text(form, "venue")),
     ceremony_contact: titleCase(text(form, "ceremony_contact")), referral: titleCase(text(form, "referral")),
   };
-  if (payload.full_name.length < 3 || payload.phone.replace(/\\D/g, "").length < 8 ||
-      !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(payload.email) ||
+  if (payload.full_name.length < 3 || !/^\d{11}$/.test(payload.phone) ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email) ||
       !validCpf(payload.cpf) || !payload.address || !payload.event_date ||
-      !/^\\d{2}:\\d{2}$/.test(payload.event_time) || !payload.venue) {
+      !/^\d{2}:\d{2}$/.test(payload.event_time) || !payload.venue) {
     redirect(`/cadastro-cliente/${token}?error=invalid`);
   }
   const admin = createAdminClient();
@@ -71,8 +77,8 @@ export async function convertIntakeToClient(form: FormData) {
   const p = intake.payload as Record<string, string>;
   const client = {
     full_name: titleCase(text(form, "full_name") || p.full_name || ""),
-    cpf: formatCpf(text(form, "cpf") || p.cpf || ""), rg: text(form, "rg") || p.rg || null,
-    phone: text(form, "phone") || p.phone || null,
+    cpf: digits(text(form, "cpf") || p.cpf || ""), rg: text(form, "rg") || p.rg || null,
+    phone: digits(text(form, "phone") || p.phone || "") || null,
     email: (text(form, "email") || p.email || "").toLowerCase() || null,
     address: titleCase(text(form, "address") || p.address || ""),
     neighborhood: titleCase(text(form, "neighborhood") || p.neighborhood || "") || null,
@@ -85,12 +91,42 @@ export async function convertIntakeToClient(form: FormData) {
   if (client.full_name.length < 3) throw new Error("Informe o nome completo do cliente.");
   if (!client.cpf || !validCpf(client.cpf)) throw new Error("Informe um CPF válido.");
   if (!client.address) throw new Error("Informe o endereço do cliente.");
-  const { data: created, error } = await supabase.from("clients").insert(client).select("id").single();
-  if (error) throw new Error(error.message);
-  const { error: updateError } = await supabase.from("client_intakes").update({ status: "converted", client_id: created.id }).eq("id", intake.id);
-  if (updateError) throw new Error("Cliente criado, mas não foi possível concluir a solicitação: " + updateError.message);
+  // CPF é a chave de identidade do cliente: reutiliza cadastro existente em vez de duplicá-lo.
+  const { data: existingClients, error: lookupError } = await supabase
+    .from("clients").select("id,cpf").not("cpf", "is", null);
+  if (lookupError) throw new Error("Não foi possível verificar o CPF cadastrado: " + lookupError.message);
+
+  let clientId = existingClients?.find((row) => digits(row.cpf || "") === client.cpf)?.id;
+
+  if (clientId) {
+    // Atualiza somente os dados pessoais revisados. event_details é preservado:
+    // os dados do novo evento vêm diretamente desta solicitação no formulário do contrato.
+    const { error: updateClientError } = await supabase.from("clients").update({
+      full_name: client.full_name, rg: client.rg, phone: client.phone,
+      email: client.email, address: client.address, neighborhood: client.neighborhood, city: client.city,
+    }).eq("id", clientId);
+    if (updateClientError) throw new Error("O cliente já existe, mas não foi possível atualizar seus dados: " + updateClientError.message);
+  } else {
+    const { data: created, error } = await supabase.from("clients").insert(client).select("id").single();
+    if (error) {
+      // Trata também duas conversões simultâneas do mesmo CPF.
+      if (error.code !== "23505") throw new Error(error.message);
+      const { data: concurrentClients, error: retryError } = await supabase
+        .from("clients").select("id,cpf").not("cpf", "is", null);
+      const match = concurrentClients?.find((row) => digits(row.cpf || "") === client.cpf);
+      if (retryError || !match) throw new Error("Já existe um cadastro com este CPF. Atualize a página e tente novamente.");
+      clientId = match.id;
+    } else {
+      clientId = created.id;
+    }
+  }
+
+  const { error: updateError } = await supabase.from("client_intakes").update({
+    status: "converted", client_id: clientId,
+  }).eq("id", intake.id);
+  if (updateError) throw new Error("Cliente identificado, mas não foi possível concluir a solicitação: " + updateError.message);
   revalidatePath("/clientes");
-  redirect(`/contratos?clientId=${created.id}`);
+  redirect(`/contratos?clientId=${clientId}&intakeId=${intake.id}`);
 }
 
 export async function createEvent(form: FormData) {

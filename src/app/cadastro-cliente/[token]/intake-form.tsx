@@ -8,6 +8,14 @@ function maskCpf(value: string) {
   return digits.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 }
 
+function maskPhone(value: string) {
+  const d = value.replace(/\D/g, "").slice(0, 11);
+  if (!d) return "";
+  if (d.length <= 2) return `(${d}`;
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d[2]} ${d.slice(3, 7)}-${d.slice(7)}`;
+}
+
 function validCpf(value: string) {
   const cpf = value.replace(/\D/g, "");
   if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
@@ -26,6 +34,7 @@ function capitalizeWords(value: string) {
 
 export function IntakeForm({ token, defaults = {} }: { token: string; defaults?: Record<string, string> }) {
   const [cpf, setCpf] = useState(maskCpf(defaults.cpf || ""));
+  const [phone, setPhone] = useState(maskPhone(defaults.phone || ""));
   const [cpfError, setCpfError] = useState("");
   function checkCpf() {
     const valid = validCpf(cpf);
@@ -43,7 +52,7 @@ export function IntakeForm({ token, defaults = {} }: { token: string; defaults?:
   }}>
     <input type="hidden" name="token" value={token}/>
     <label>Nome completo *<input name="full_name" required minLength={3} autoComplete="name" defaultValue={defaults.full_name || ""} onBlur={capitalize}/></label>
-    <label>Telefone / WhatsApp *<input name="phone" required autoComplete="tel" inputMode="tel" placeholder="(00) 00000-0000" defaultValue={defaults.phone || ""}/></label>
+    <label>Celular / WhatsApp *<input name="phone" required autoComplete="tel" inputMode="numeric" maxLength={16} placeholder="(00) 9 0000-0000" value={phone} onChange={(event) => setPhone(maskPhone(event.target.value))}/></label>
     <label>E-mail *<input name="email" type="email" required autoComplete="email" inputMode="email" defaultValue={defaults.email || ""}/></label>
     <label>CPF *<input name="cpf" required inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" value={cpf} onChange={(event) => {setCpf(maskCpf(event.target.value));setCpfError("");}} onBlur={checkCpf} aria-invalid={!!cpfError}/>{cpfError && <small className="field-error">{cpfError}</small>}</label>
     <label>RG<input name="rg" defaultValue={defaults.rg || ""} onBlur={capitalize}/></label>

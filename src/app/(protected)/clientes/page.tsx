@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Bell, Link2, UserRoundPlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createClientIntakeLink } from "@/actions/operations";
+import { IntakeLinkActions } from "./intake-link-actions";
 
 export default async function ClientesPage({ searchParams }: { searchParams: Promise<{ link?: string }> }) {
   const { link } = await searchParams;
@@ -15,7 +16,7 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
     <section className="operation-panel">
       <div className="operation-title"><div><h2><Link2 size={17}/> Link de pré-cadastro</h2><p>O link é individual, expira em 14 dias e pode ser utilizado uma única vez.</p></div></div>
       <form action={createClientIntakeLink}><button className="operation-submit" type="submit"><UserRoundPlus size={16}/> Gerar link para cliente</button></form>
-      {link && <div className="intake-link-box"><strong>Link criado</strong><p>Envie este endereço ao cliente por WhatsApp ou e-mail:</p><a href={link}>{link}</a><p className="operation-hint">O link contém um token privado. Não publique em locais abertos.</p></div>}
+      {link && <div className="intake-link-box"><strong>Link criado</strong><p>Envie este endereço ao cliente por WhatsApp ou e-mail:</p><a href={link}>{link}</a><IntakeLinkActions link={link}/><p className="operation-hint">O link contém um token privado. Não publique em locais abertos.</p></div>}
     </section>
     <section className="operation-panel">
       <div className="operation-title"><div><h2><Bell size={17}/> Solicitações recebidas</h2><p>{pending.length} cadastro(s) aguardando revisão administrativa.</p></div></div>
