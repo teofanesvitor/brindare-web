@@ -12,8 +12,6 @@ const text = (form: FormData, key: string) => String(form.get(key) ?? "").trim()
 const number = (form: FormData, key: string) => Math.max(0, Number(form.get(key) || 0));
 const titleCase = (value: string) => value.toLocaleLowerCase("pt-BR").replace(/(^|\s|[-'])\p{L}/gu, (match) => match.toLocaleUpperCase("pt-BR"));
 const digits = (value: string) => value.replace(/\D/g, "");
-const formatCpf = (value: string) => {
-  const d = digits(value);
 const validCpf = (value: string) => {
   const cpf = digits(value);
   if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
