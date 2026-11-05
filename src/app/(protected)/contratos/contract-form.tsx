@@ -22,9 +22,9 @@ function Field({ label, name, type = "text", required = false, defaultValue = ""
     }
   }
   function keepDigits(event: React.ChangeEvent<HTMLInputElement>) {
-    if (digitsOnly) event.currentTarget.value = event.currentTarget.value.replace(/\\D/g, "").slice(0, maxLength);
+    if (digitsOnly) event.currentTarget.value = event.currentTarget.value.replace(/\D/g, "").slice(0, maxLength);
   }
-  const initialValue = digitsOnly ? String(defaultValue).replace(/\\D/g, "").slice(0, maxLength) : defaultValue;
+  const initialValue = digitsOnly ? String(defaultValue).replace(/\D/g, "").slice(0, maxLength) : defaultValue;
   return <label className="contract-field"><span>{label}{required ? " *" : ""}</span><input name={name} type={digitsOnly ? "text" : type} inputMode={digitsOnly ? "numeric" : undefined} pattern={digitsOnly ? "[0-9]*" : undefined} maxLength={maxLength} required={required} defaultValue={initialValue} min={min} step={step} onChange={keepDigits} onBlur={capitalize}/></label>;
 }
 export function ContractForm({ initialData = {} }: { initialData?: InitialData }) {
