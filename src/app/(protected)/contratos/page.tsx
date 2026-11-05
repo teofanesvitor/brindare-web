@@ -5,19 +5,22 @@ import { createClient } from "@/lib/supabase/server";
 function brl(cents: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 }
-export default async function ContratosPage({ searchParams }: { searchParams: Promise<{ clientId?: string }> }) {
-  const { clientId } = await searchParams;
+export default async function ContratosPage({ searchParams }: { searchParams: Promise<{ clientId?: string; intakeId?: string }> }) {
+  const { clientId, intakeId } = await searchParams;
   const supabase = await createClient();
-  const [{ data: contracts, error }, { data: client }] = await Promise.all([
+  const [{ data: contracts, error }, { data: client }, { data: intake }] = await Promise.all([
     supabase.from("contracts").select("id, client_name, event_date, package_name, total_cents, docx_path, file_name, created_at").order("created_at", { ascending: false }).limit(20),
     clientId ? supabase.from("clients").select("id,full_name,cpf,rg,phone,email,address,neighborhood,city,event_details").eq("id", clientId).maybeSingle() : Promise.resolve({ data: null }),
+    intakeId ? supabase.from("client_intakes").select("payload").eq("id", intakeId).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const details = (client?.event_details || {}) as Record<string,string>;
+  const intakeDetails = (intake?.payload || {}) as Record<string,string>;
+  const eventDetails = intakeDetails.event_date ? intakeDetails : details;
   const initialData = client ? {
     clientId: client.id, client: client.full_name, cpf: client.cpf || "", rg: client.rg || "",
     phone: client.phone || "", email: client.email || "", address: client.address || "",
     neighborhood: client.neighborhood || "", city: client.city || "",
-    eventDate: details.event_date || "", eventTime: details.event_time || "", toastTime: details.toast_time || "", venue: details.venue || "",
+    eventDate: eventDetails.event_date || "", eventTime: eventDetails.event_time || "", toastTime: eventDetails.toast_time || "", venue: eventDetails.venue || "",
   } : undefined;
   const history = await Promise.all((contracts || []).map(async (item) => {
     if (!item.docx_path) return { ...item, docxUrl: null };
