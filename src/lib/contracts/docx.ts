@@ -62,6 +62,19 @@ function zipEntries(entries: ZipEntry[]): Buffer {
 function escapeXml(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 }
+function removeOptionalParagraph(xml: string, key: string): string {
+  const paragraphs = /<w:p\\b[^>]*>[\\s\\S]*?<\\/w:p>/g;
+  let found = false;
+  const updated = xml.replace(paragraphs, (paragraph) => {
+    if (found || !paragraph.includes(`{{${key}}}`)) return paragraph;
+    found = true;
+    return "";
+  });
+  // Se a chave estiver fora de um parágrafo isolado ou dividida pela estrutura
+  // XML do Word, elimina somente o marcador literal; a ausência nunca bloqueia o DOCX.
+  return found ? updated : updated.replaceAll(`{{${key}}}`, "");
+}
+
 function replaceParagraphContaining(xml: string, key: string, replace: (paragraph: string) => string): string {
   // Limita a busca a um único parágrafo Word; não atravessa </w:p>.
   const paragraphs = /<w:p\b[^>]*>[\s\S]*?<\/w:p>/g;
@@ -79,8 +92,13 @@ export function fillDocxTemplate(template: Buffer, values: Record<string, string
   const entries = unzipEntries(template), document = entries.find((entry) => entry.name === "word/document.xml");
   if (!document) throw new Error("O modelo DOCX não contém word/document.xml.");
   let xml = document.data.toString("utf8");
-  if (!values.CLAUSULA_FOGOS?.trim()) xml = replaceParagraphContaining(xml, "CLAUSULA_FOGOS", () => "");
-  if (!values.DESLOCAMENTO?.trim() || values.DESLOCAMENTO === "0,00") xml = replaceParagraphContaining(xml, "DESLOCAMENTO", () => "");
+  // Fogos e deslocamento são opcionais: o modelo pode não conter essas chaves.
+  if (!values.CLAUSULA_FOGOS?.trim()) {
+    xml = removeOptionalParagraph(xml, "CLAUSULA_FOGOS");
+  }
+  if (!values.DESLOCAMENTO?.trim() || values.DESLOCAMENTO === "0,00") {
+    xml = removeOptionalParagraph(xml, "DESLOCAMENTO");
+  }
   if (values.ITENS_PACOTE !== undefined) {
     const lines = values.ITENS_PACOTE.split(/\r?\n/).filter((line) => line.trim());
     xml = replaceParagraphContaining(xml, "ITENS_PACOTE", (paragraph) =>

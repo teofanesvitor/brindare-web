@@ -14,12 +14,18 @@ function capitalizeWords(value: string) {
   return value.toLocaleLowerCase("pt-BR").replace(/(^|\s|[-'])\p{L}/gu, (match) => match.toLocaleUpperCase("pt-BR"));
 }
 function Field({ label, name, type = "text", required = false, defaultValue = "", min, step }: FieldProps) {
+  const digitsOnly = name === "cpf" || name === "phone";
+  const maxLength = name === "cpf" ? 11 : name === "phone" ? 13 : undefined;
   function capitalize(event: FocusEvent<HTMLInputElement>) {
     if (!["email", "cpf", "phone", "rg"].includes(name) && type !== "date" && type !== "time" && type !== "number") {
       event.currentTarget.value = capitalizeWords(event.currentTarget.value);
     }
   }
-  return <label className="contract-field"><span>{label}{required ? " *" : ""}</span><input name={name} type={type} required={required} defaultValue={defaultValue} min={min} step={step} onBlur={capitalize}/></label>;
+  function keepDigits(event: React.ChangeEvent<HTMLInputElement>) {
+    if (digitsOnly) event.currentTarget.value = event.currentTarget.value.replace(/\\D/g, "").slice(0, maxLength);
+  }
+  const initialValue = digitsOnly ? String(defaultValue).replace(/\\D/g, "").slice(0, maxLength) : defaultValue;
+  return <label className="contract-field"><span>{label}{required ? " *" : ""}</span><input name={name} type={digitsOnly ? "text" : type} inputMode={digitsOnly ? "numeric" : undefined} pattern={digitsOnly ? "[0-9]*" : undefined} maxLength={maxLength} required={required} defaultValue={initialValue} min={min} step={step} onChange={keepDigits} onBlur={capitalize}/></label>;
 }
 export function ContractForm({ initialData = {} }: { initialData?: InitialData }) {
   const [pending, startTransition] = useTransition();
