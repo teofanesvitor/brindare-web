@@ -69,9 +69,11 @@ export function ContractForm({ initialData = {} }: { initialData?: InitialData }
   const [packageName, setPackageName] = useState("");
   const [travelCents, setTravelCents] = useState(0);
   const [depositCents, setDepositCents] = useState(0);
+  const [depositEdited, setDepositEdited] = useState(false);
   const packageCents = (packagePrices[packageName] || 0) * 100;
   const totalCents = packageCents + travelCents;
-  const balanceCents = Math.max(0, totalCents - depositCents);
+  const effectiveDepositCents = depositEdited ? depositCents : Math.round(totalCents / 2);
+  const balanceCents = Math.max(0, totalCents - effectiveDepositCents);
 
   function submit(formData: FormData) {
     setResult(null);
@@ -104,9 +106,9 @@ export function ContractForm({ initialData = {} }: { initialData?: InitialData }
       <label className="contract-field"><span>Valor do pacote</span><input type="text" readOnly value={packageName ? formatCurrency(packageCents) : "Selecione um pacote"}/></label>
       <MoneyField label="Deslocamento" name="travel" cents={travelCents} onChange={setTravelCents}/>
       <label className="contract-field"><span>Valor total (pacote + deslocamento)</span><input type="text" readOnly value={formatCurrency(totalCents)}/><input type="hidden" name="total" value={centsToNumber(totalCents)}/></label>
-      <MoneyField label="Entrada *" name="deposit" cents={depositCents} onChange={setDepositCents}/>
+      <MoneyField label="Entrada *" name="deposit" cents={effectiveDepositCents} onChange={(value) => { setDepositCents(value); setDepositEdited(true); }}/>
       <label className="contract-field"><span>Restante (calculado automaticamente)</span><input type="text" readOnly value={formatCurrency(balanceCents)}/><input type="hidden" name="balance" value={centsToNumber(balanceCents)}/></label>
-    </div><p className="contract-hint">O valor total é calculado pelo preço fixo do pacote somado ao deslocamento. O restante é o total menos a entrada.</p></section>
+    </div><p className="contract-hint">O valor total é calculado pelo preço fixo do pacote somado ao deslocamento. A entrada inicia em 50% do total e acompanha as alterações até ser editada manualmente. O restante é o total menos a entrada.</p></section>
     <section className="contract-panel"><h2>Itens do pacote</h2><div className="contract-grid">
       <Field label="Mesa de apoio (0 = não incluir)" name="mesa" type="number" min="0" step="1" defaultValue="0"/>
       <label className="contract-field"><span>Taças de vidro (quantidade)</span><input name="tacas" type="number" min="0" step="1" list="glass-quantities" defaultValue="0"/><datalist id="glass-quantities"><option value="30"/><option value="55"/><option value="90"/></datalist></label>
