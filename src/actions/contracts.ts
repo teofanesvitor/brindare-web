@@ -6,7 +6,7 @@ import { contractSchema } from "@/lib/contracts/schema";
 import { generateContract } from "@/lib/contracts/generate";
 
 export type ContractActionResult =
-  | { ok: true; name: string; documentUrl: string; pdfUrl: string }
+  | { ok: true; name: string; documentUrl: string }
   | { ok: false; message: string };
 
 export async function generateContractAction(formData: FormData): Promise<ContractActionResult> {
@@ -17,8 +17,9 @@ export async function generateContractAction(formData: FormData): Promise<Contra
     return { ok: false, message: issue?.message || "Verifique os campos informados." };
   }
   const supabase = await createClient();
+  let generated: Awaited<ReturnType<typeof generateContract>> | null = null;
   try {
-    const generated = await generateContract(parsed.data);
+    generated = await generateContract(parsed.data, supabase, user.id);
     const { data: savedContract, error } = await supabase.from("contracts").insert({
       created_by: user.id,
       client_name: parsed.data.client,
@@ -27,45 +28,40 @@ export async function generateContractAction(formData: FormData): Promise<Contra
       total_cents: Math.round(parsed.data.total * 100),
       deposit_cents: Math.round(parsed.data.deposit * 100),
       balance_cents: Math.round(parsed.data.balance * 100),
-      google_document_id: generated.documentId,
-      google_document_url: generated.documentUrl,
-      google_pdf_id: generated.pdfId,
-      google_pdf_url: generated.pdfUrl,
-      file_name: generated.name,
+      docx_path: generated.storagePath,
+      file_name: `${generated.name}.docx`,
       input_snapshot: parsed.data,
       status: "generated",
     }).select("id").single();
     if (error) {
-      return { ok: false, message: `Arquivos gerados no Google Drive, mas não foi possível registrar no sistema: ${error.message}` };
+      await supabase.storage.from("contracts").remove([generated.storagePath]);
+      return { ok: false, message: `DOCX criado, mas não foi possível registrar o contrato: ${error.message}` };
     }
-    {
-      const { error: eventError } = await supabase.from("events").insert({
-        contract_id: savedContract.id,
-        client_id: parsed.data.clientId || null,
-        client_name: parsed.data.client,
-        event_date: parsed.data.eventDate,
-        event_time: parsed.data.eventTime || null,
-        toast_time: parsed.data.toastTime || null,
-        venue: parsed.data.venue,
-        package_name: parsed.data.packageName,
-        total_cents: Math.round(parsed.data.total * 100),
-        deposit_cents: Math.round(parsed.data.deposit * 100),
-        balance_cents: Math.round(parsed.data.balance * 100),
-        travel_cents: Math.round(parsed.data.travel * 100),
-        status: "A pagar",
-        glasses: parsed.data.tacas,
-        fireworks: parsed.data.fogos,
-        sparkles: parsed.data.sparkles,
-        tables: parsed.data.mesa,
-        champagne: parsed.data.champagne,
-        created_by: user.id,
-      });
-      if (eventError) {
-        return { ok: false, message: `Contrato gerado e salvo, mas o evento não entrou na agenda: ${eventError.message}` };
-      }
-    }
-    return { ok: true, name: generated.name, documentUrl: generated.documentUrl, pdfUrl: generated.pdfUrl };
+    const { error: eventError } = await supabase.from("events").insert({
+      contract_id: savedContract.id,
+      client_id: parsed.data.clientId || null,
+      client_name: parsed.data.client,
+      event_date: parsed.data.eventDate,
+      event_time: parsed.data.eventTime || null,
+      toast_time: parsed.data.toastTime || null,
+      venue: parsed.data.venue,
+      package_name: parsed.data.packageName,
+      total_cents: Math.round(parsed.data.total * 100),
+      deposit_cents: Math.round(parsed.data.deposit * 100),
+      balance_cents: Math.round(parsed.data.balance * 100),
+      travel_cents: Math.round(parsed.data.travel * 100),
+      status: "A pagar",
+      glasses: parsed.data.tacas,
+      fireworks: parsed.data.fogos,
+      sparkles: parsed.data.sparkles,
+      tables: parsed.data.mesa,
+      champagne: parsed.data.champagne,
+      created_by: user.id,
+    });
+    if (eventError) return { ok: false, message: `DOCX gerado e salvo, mas o evento não entrou na agenda: ${eventError.message}` };
+    return { ok: true, name: generated.name, documentUrl: generated.documentUrl };
   } catch (error) {
+    if (generated?.storagePath) await supabase.storage.from("contracts").remove([generated.storagePath]);
     const message = error instanceof Error ? error.message : "Falha desconhecida ao gerar contrato.";
     return { ok: false, message: `Não foi possível gerar o contrato. ${message}` };
   }
