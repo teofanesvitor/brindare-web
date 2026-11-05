@@ -43,7 +43,6 @@ export async function generateContractAction(formData: FormData): Promise<Contra
       client_name: parsed.data.client,
       event_date: parsed.data.eventDate,
       event_time: parsed.data.eventTime || null,
-      toast_time: parsed.data.toastTime || null,
       venue: parsed.data.venue,
       package_name: parsed.data.packageName,
       total_cents: Math.round(parsed.data.total * 100),
