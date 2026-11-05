@@ -71,16 +71,16 @@ export function fillDocxTemplate(template: Buffer, values: Record<string, string
   // Renderiza cada item do pacote em um parágrafo próprio, preservando a formatação
   // do parágrafo-base e evitando que o alinhamento justificado estique as palavras.
   if (values.ITENS_PACOTE !== undefined) {
-    const itemParagraph = /<w:p(?:\\s[^>]*)?>[\\s\\S]*?\\{\\{ITENS_PACOTE\\}\\}[\\s\\S]*?<\\/w:p>/;
+    const itemParagraph = /<w:p(?:\s[^>]*)?>[\s\S]*?\{\{ITENS_PACOTE\}\}[\s\S]*?<\\/w:p>/;
     const match = xml.match(itemParagraph);
     if (!match) throw new Error("O modelo DOCX não contém a chave {{ITENS_PACOTE}}.");
-    const lines = values.ITENS_PACOTE.split(/\\r?\\n/).filter((line) => line.trim());
+    const lines = values.ITENS_PACOTE.split(/\r?\n/).filter((line) => line.trim());
     const paragraphs = lines.map((line) => match[0].replace("{{ITENS_PACOTE}}", escapeXml(line)));
     xml = xml.replace(itemParagraph, paragraphs.join(""));
   }
   for (const [key, raw] of Object.entries(values)) {
     if (key === "ITENS_PACOTE") continue;
-    const text = escapeXml(raw).replace(/\\r?\\n/g, "</w:t><w:br/><w:t xml:space=\\\"preserve\\\">");
+    const text = escapeXml(raw).replace(/\r?\n/g, "</w:t><w:br/><w:t xml:space=\\\"preserve\\\">");
     xml = xml.replaceAll(`{{${key}}}`, text);
   }
   const unresolved = [...xml.matchAll(/\{\{([A-Z0-9_]+)\}\}/g)].map((match) => match[1]);
