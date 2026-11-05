@@ -49,7 +49,7 @@ const formatCurrency = (cents: number) => (cents / 100).toLocaleString("pt-BR", 
 
 function MoneyField({ label, name, cents, onChange }: { label: string; name: string; cents: number; onChange: (value: number) => void }) {
   return <label className="contract-field"><span>{label}</span>
-    <input type="text" inputMode="decimal" value={formatCurrency(cents)} onChange={(event) => {
+    <input type="text" inputMode="decimal" value={formatCurrency(cents)} onFocus={(event) => event.currentTarget.select()} onChange={(event) => {
       const digits = event.currentTarget.value.replace(/\\D/g, "");
       onChange(digits ? Number(digits) : 0);
     }}/>
