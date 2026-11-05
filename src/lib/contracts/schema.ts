@@ -11,7 +11,7 @@ export const contractSchema = z.object({
   clientId: z.string().uuid().optional(),
   eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => { const parsed = new Date(`${value}T12:00:00`); return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value; }, "Data do evento inválida."), eventTime: z.string().min(1, "Informe o horário do evento.").max(5), toastTime: z.string().max(5).optional().default(""),
   client: z.string().trim().min(2).max(180), cpf: z.string().trim().min(1).max(18).refine(validCpf, "Informe um CPF válido."), rg: z.string().trim().max(30).optional().default(""),
-  phone: z.string().trim().max(30).optional().default(""), email: z.union([z.string().email(), z.literal("")]).optional().default(""),
+  phone: z.string().trim().max(13).refine((value) => value === "" || /^\\d{10,13}$/.test(value), "Informe somente números no telefone (10 a 13 dígitos).").optional().default(""), email: z.union([z.string().email(), z.literal("")]).optional().default(""),
   address: z.string().trim().min(1, "Informe o endereço do contratante.").max(240), neighborhood: z.string().trim().max(120).optional().default(""), city: z.string().trim().max(120).optional().default(""),
   venue: z.string().trim().min(1, "Informe o local do evento.").max(240), packageName: z.string().trim().min(1).max(120),
   total: money, deposit: money, balance: money, travel: money.optional().default(0), mesa: quantity, tacas: quantity, fogos: quantity, sparkles: quantity, champagne: quantity,
