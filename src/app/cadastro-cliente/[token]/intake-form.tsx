@@ -9,7 +9,7 @@ function maskCpf(value: string) {
 }
 
 function maskPhone(value: string) {
-  const d = value.replace(/\\D/g, "").slice(0, 11);
+  const d = value.replace(/\D/g, "").slice(0, 11);
   if (!d) return "";
   if (d.length <= 2) return `(${d}`;
   if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
