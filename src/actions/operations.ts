@@ -226,3 +226,57 @@ export async function registerEventPayment(form: FormData) {
   revalidatePath("/agenda");
   revalidatePath("/dashboard");
 }
+
+
+export async function uploadSignedEventContract(form: FormData) {
+  const { user } = await requireAdmin();
+  const supabase = await createClient();
+  const admin = createAdminClient();
+  const eventId = text(form, "event_id");
+  const file = form.get("signed_contract");
+
+  if (!eventId || !(file instanceof File) || file.size === 0) {
+    throw new Error("Selecione o evento e o arquivo do contrato assinado.");
+  }
+  const allowedTypes: Record<string, string> = {
+    "application/pdf": "pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+    "image/jpeg": "jpg",
+    "image/png": "png",
+  };
+  const extension = allowedTypes[file.type];
+  if (!extension) {
+    throw new Error("Formato não permitido. Envie PDF, DOCX, JPG ou PNG.");
+  }
+  if (file.size > 12 * 1024 * 1024) {
+    throw new Error("O arquivo deve ter no máximo 12 MB.");
+  }
+
+  const { data: event, error: eventError } = await supabase
+    .from("events").select("id").eq("id", eventId).maybeSingle();
+  if (eventError || !event) throw new Error("Evento não encontrado ou sem permissão.");
+
+  const safeName = file.name.replace(/[^\\p{L}\\p{N}._-]/gu, "_").slice(-100) || `contrato-assinado.${extension}`;
+  const storagePath = `signed/${eventId}/${crypto.randomUUID()}.${extension}`;
+  const { error: uploadError } = await admin.storage.from("contracts").upload(
+    storagePath, await file.arrayBuffer(),
+    { contentType: file.type, upsert: false }
+  );
+  if (uploadError) throw new Error("Não foi possível armazenar o contrato assinado: " + uploadError.message);
+
+  const { error: recordError } = await supabase.from("event_signed_contracts").insert({
+    event_id: eventId,
+    storage_path: storagePath,
+    original_file_name: safeName,
+    mime_type: file.type,
+    file_size: file.size,
+    created_by: user.id,
+  });
+  if (recordError) {
+    await admin.storage.from("contracts").remove([storagePath]);
+    throw new Error("Arquivo enviado, mas não foi possível registrar o recebimento: " + recordError.message);
+  }
+
+  revalidatePath("/agenda");
+  revalidatePath("/dashboard");
+}
