@@ -79,8 +79,13 @@ export function fillDocxTemplate(template: Buffer, values: Record<string, string
   const entries = unzipEntries(template), document = entries.find((entry) => entry.name === "word/document.xml");
   if (!document) throw new Error("O modelo DOCX não contém word/document.xml.");
   let xml = document.data.toString("utf8");
-  if (!values.CLAUSULA_FOGOS?.trim()) xml = replaceParagraphContaining(xml, "CLAUSULA_FOGOS", () => "");
-  if (!values.DESLOCAMENTO?.trim() || values.DESLOCAMENTO === "0,00") xml = replaceParagraphContaining(xml, "DESLOCAMENTO", () => "");
+  // Fogos e deslocamento são opcionais: o modelo pode não conter essas chaves.
+  if (!values.CLAUSULA_FOGOS?.trim() && xml.includes("{{CLAUSULA_FOGOS}}")) {
+    xml = replaceParagraphContaining(xml, "CLAUSULA_FOGOS", () => "");
+  }
+  if ((!values.DESLOCAMENTO?.trim() || values.DESLOCAMENTO === "0,00") && xml.includes("{{DESLOCAMENTO}}")) {
+    xml = replaceParagraphContaining(xml, "DESLOCAMENTO", () => "");
+  }
   if (values.ITENS_PACOTE !== undefined) {
     const lines = values.ITENS_PACOTE.split(/\r?\n/).filter((line) => line.trim());
     xml = replaceParagraphContaining(xml, "ITENS_PACOTE", (paragraph) =>
