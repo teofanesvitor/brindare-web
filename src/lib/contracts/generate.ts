@@ -19,7 +19,11 @@ function shiftDays(value: Date, days: number): Date {
   const result = new Date(value); result.setUTCDate(result.getUTCDate() + days); return result;
 }
 function contractDate(): string {
-  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "long", timeZone: "America/Maceio" }).format(new Date());
+  const parts = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Maceio", day: "2-digit", month: "long", year: "numeric",
+  }).formatToParts(new Date());
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${value.day} de ${String(value.month).toLocaleUpperCase("pt-BR")} de ${value.year}`;
 }
 export async function generateContract(input: ContractInput, supabase: SupabaseClient, userId: string) {
   const eventDate = localDate(input.eventDate), fileName = nomeContrato(input.client, input.eventDate);
