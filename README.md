@@ -117,64 +117,26 @@ Esta entrega é a fundação: login administrativo, dashboard inicial, estrutura
 
 Antes de produção, validar domínio, política de convites, SMTP do Supabase, backups do projeto, MFA para administradores e limites de acesso. O provisionamento atual aceita de um a cinco e-mails configurados; a restrição de exatamente cinco contas ativas deve também ser monitorada operacionalmente caso a equipe mude.
 
-## Geração de contratos (Fase 1 — módulo inicial)
+## Geração de contratos
 
-A rota `/contratos` gera uma cópia do modelo Google Docs legado e exporta um PDF na mesma pasta do modelo. O modelo original não é modificado. A implementação preserva os marcadores do Apps Script (`{{CLIENTE}}`, `{{CPF}}`, `{{ITENS_PACOTE}}`, `{{VALOR_EXTENSO}}` etc.), a conversão monetária por extenso, os itens condicionais, a cláusula de fogos, os prazos de vencimento/limite e o padrão de nome de arquivo.
+A rota `/contratos` preenche o modelo DOCX oficial armazenado em `src/templates/contract-template.docx`. O arquivo original permanece inalterado. Cada geração cria uma nova cópia DOCX e a armazena no bucket privado `contracts` do Supabase Storage, vinculando o caminho à tabela `contracts`.
 
-### Configurar acesso Google
+### Configuração
 
-1. No Google Cloud Console, habilite **Google Docs API** e **Google Drive API**.
-2. Crie credenciais OAuth 2.0 para aplicação web/servidor. Autorize a conta Google que possui acesso de edição ao modelo `15ZhmqVluSCaMHWeX9gsuaUoikKrol5e8loB4GrxW08M` e à pasta onde os arquivos devem ser salvos.
-3. Gere um refresh token OAuth offline com os escopos `https://www.googleapis.com/auth/drive` e `https://www.googleapis.com/auth/documents`.
-4. Configure `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e `GOOGLE_REFRESH_TOKEN` no `.env.local` e no ambiente server-side da Vercel. Opcionalmente configure `GOOGLE_CONTRACT_TEMPLATE_ID` para trocar o modelo.
-5. Aplique a migration `supabase/migrations/202611020002_contracts.sql` no Supabase.
+1. Copie o modelo DOCX disponibilizado para `src/templates/contract-template.docx`.
+2. Aplique a migration `supabase/migrations/202611050001_contracts_docx_storage.sql` no Supabase.
+3. Não são necessárias credenciais Google nem variáveis OAuth para gerar DOCX.
+4. O bucket é privado; administradores autenticados recebem URLs assinadas com validade de uma hora.
 
-O refresh token e o segredo OAuth são credenciais privadas: não os coloque em código, repositório, navegador ou variáveis `NEXT_PUBLIC_*`. A conta OAuth precisa ter permissão para copiar o modelo e criar arquivos na pasta de destino. Compartilhe a pasta de contratos com os administradores (ou utilize um Drive compartilhado), pois os arquivos herdam as permissões da pasta. Se o modelo não estiver acessível por essa conta, a geração falhará sem alterar o modelo original.
+### Marcadores do modelo
 
-### Regras operacionais
+`{{CLIENTE}}`, `{{RG}}`, `{{CPF}}`, `{{ENDERECO}}`, `{{TELEFONE}}`, `{{EMAIL}}`, `{{PACOTE}}`, `{{ITENS_PACOTE}}`, `{{DATA}}`, `{{HORARIO}}`, `{{HORARIO_BRINDE}}`, `{{LOCAL}}`, `{{VALOR}}`, `{{VALOR_EXTENSO}}`, `{{ENTRADA}}`, `{{ENTRADA_EXTENSO}}`, `{{RESTANTE}}`, `{{RESTANTE_EXTENSO}}`, `{{DESLOCAMENTO}}`, `{{VENCIMENTO}}`, `{{CLAUSULA_FOGOS}}` e `{{DATA_CONTRATO}}`.
 
-- Data, cliente, CPF, pacote e local são obrigatórios no formulário; os demais dados pessoais podem ficar vazios, tal como os campos não obrigatórios no modelo.
-- Vencimento = data do evento menos 1 dia; limite = data do evento menos 3 dias.
-- O formulário mantém os dados após gerar, ao contrário do script que limpava células da aba `Cadastro`.
-- O contrato gerado é registrado na tabela `contracts`, incluindo snapshot dos dados, IDs e URLs do Google Docs e PDF. Se o Drive gerar os arquivos e a gravação no banco falhar, os arquivos permanecem no Drive e a interface informa a falha de registro.
-- Não foi possível validar a geração real contra o Google Drive nesta execução porque isso depende de credenciais OAuth e permissões da conta Brindare.
+Os itens do pacote são montados a partir das quantidades cadastradas. A cláusula de segurança dos fogos e a linha de deslocamento são removidas quando não se aplicam. O vencimento é calculado como um dia antes do evento. A conversão para PDF permanece fora desta etapa.
 
+### Segurança e histórico
 
-## Publicar no GitHub
-
-O arquivo `.env.local` e as chaves reais não devem ser enviados ao GitHub. O `.gitignore` já exclui esses arquivos. Depois de criar um repositório vazio no GitHub, execute na pasta do projeto:
-
-```powershell
-git init
-git add .
-git commit -m "Initial Brindare Web setup"
-git branch -M main
-git remote add origin https://github.com/SEU_USUARIO/brindare-web.git
-git push -u origin main
-```
-
-Substitua `SEU_USUARIO` pelo seu usuário GitHub. Configure as credenciais de produção nas variáveis de ambiente da plataforma de hospedagem, nunca em arquivos versionados.
-
-## Agenda, clientes e estoque
-
-A Fase 2 adiciona as rotas administrativas `/agenda`, `/clientes` e `/estoque`.
-
-- **Agenda:** registra eventos por data e horário, cliente, local, cerimonial, indicação, pacote, valores, status e quantidades de itens. Contratos finalizados pelo fluxo de pré-cadastro são registrados automaticamente na agenda.
-- **Clientes:** o administrador gera um link individual de pré-cadastro. O link expira em 14 dias e é de uso único. O cliente informa os dados pessoais e dados básicos do evento; a equipe recebe uma notificação na navegação, revisa e completa o cadastro. Após a revisão, o sistema abre a geração de contrato com os dados do cliente e do evento pré-preenchidos.
-- **Estoque:** catálogo inicial baseado na planilha (Taças, Fogos, Sparkles, Mesa, Champanhe, Extensão e Furadeira), saldo calculado a partir de entradas e saídas, cadastro de novos itens e alerta quando um mínimo configurado é atingido. Os saldos iniciais não são presumidos: registre o inventário físico como movimentações de entrada.
-
-### Aplicar as migrations da Fase 2
-
-No Supabase → SQL Editor, execute em ordem:
-
-1. `supabase/migrations/202611030001_agenda_estoque_clientes.sql`
-2. `supabase/migrations/202611030002_client_event_details.sql`
-3. `supabase/migrations/202611030003_link_events_to_contracts.sql`
-
-A primeira migration cria clientes, pré-cadastros, eventos, itens e movimentações de estoque, além das políticas RLS. As seguintes guardam dados de evento recebidos no pré-cadastro e associam eventos aos contratos.
-
-### Segurança do link público
-
-O link usa um token aleatório de alta entropia; somente o hash SHA-256 é persistido. A submissão é validada no servidor com a chave service role, sem expor essa chave ao navegador. O token expira em 14 dias e a submissão é condicional ao status pendente para impedir reutilização concorrente.
-
-Em ambiente local, mantenha `SUPABASE_SERVICE_ROLE_KEY` apenas em `.env.local`. Em produção, se habilitar os links públicos, configure a mesma variável como segredo server-side da plataforma de hospedagem (sem prefixo `NEXT_PUBLIC_`). Nunca registre essa chave no GitHub.
+- O bucket `contracts` é privado e aceita apenas arquivos DOCX.
+- Os links são assinados por uma hora; o banco armazena o caminho, não uma URL pública.
+- Cada geração recebe um nome único e não sobrescreve documentos anteriores.
+- As colunas antigas do Google permanecem nullable para preservar o histórico legado.
