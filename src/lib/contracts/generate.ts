@@ -27,12 +27,16 @@ function contractDate(): string {
 }
 export async function generateContract(input: ContractInput, supabase: SupabaseClient, userId: string) {
   const eventDate = localDate(input.eventDate), fileName = nomeContrato(input.client, input.eventDate);
+  const toastDeadline = formatDate(shiftDays(eventDate, -3));
+  const toastText = input.toastTime?.trim()
+    ? input.toastTime.trim()
+    : `O horário para realização do brinde será definido até o dia ${toastDeadline}, devendo ser formalizado pelas partes, até essa data, por meio de termo aditivo ao presente contrato;`;
   const values: Record<string, string> = {
     CLIENTE: input.client, RG: input.rg || "Não informado", CPF: input.cpf,
     ENDERECO: [input.address, input.neighborhood, input.city].filter(Boolean).join(", "),
     TELEFONE: input.phone || "Não informado", EMAIL: input.email || "Não informado",
     PACOTE: input.packageName, ITENS_PACOTE: itensDoPacote(input), DATA: formatDate(eventDate),
-    HORARIO: input.eventTime || "A definir", HORARIO_BRINDE: input.toastTime || "Não informado",
+    HORARIO: input.eventTime || "A definir", HORARIO_BRINDE: toastText,
     LOCAL: input.venue, VALOR: moeda(input.total), VALOR_EXTENSO: numeroPorExtenso(input.total),
     ENTRADA: moeda(input.deposit), ENTRADA_EXTENSO: numeroPorExtenso(input.deposit),
     RESTANTE: moeda(input.balance), RESTANTE_EXTENSO: numeroPorExtenso(input.balance),
