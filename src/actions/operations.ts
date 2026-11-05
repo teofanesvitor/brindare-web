@@ -91,12 +91,42 @@ export async function convertIntakeToClient(form: FormData) {
   if (client.full_name.length < 3) throw new Error("Informe o nome completo do cliente.");
   if (!client.cpf || !validCpf(client.cpf)) throw new Error("Informe um CPF válido.");
   if (!client.address) throw new Error("Informe o endereço do cliente.");
-  const { data: created, error } = await supabase.from("clients").insert(client).select("id").single();
-  if (error) throw new Error(error.message);
-  const { error: updateError } = await supabase.from("client_intakes").update({ status: "converted", client_id: created.id }).eq("id", intake.id);
-  if (updateError) throw new Error("Cliente criado, mas não foi possível concluir a solicitação: " + updateError.message);
+  // CPF é a chave de identidade do cliente: reutiliza cadastro existente em vez de duplicá-lo.
+  const { data: existingClients, error: lookupError } = await supabase
+    .from("clients").select("id,cpf").not("cpf", "is", null);
+  if (lookupError) throw new Error("Não foi possível verificar o CPF cadastrado: " + lookupError.message);
+
+  let clientId = existingClients?.find((row) => digits(row.cpf || "") === client.cpf)?.id;
+
+  if (clientId) {
+    // Atualiza somente os dados pessoais revisados. event_details é preservado:
+    // os dados do novo evento vêm diretamente desta solicitação no formulário do contrato.
+    const { error: updateClientError } = await supabase.from("clients").update({
+      full_name: client.full_name, cpf: client.cpf, rg: client.rg, phone: client.phone,
+      email: client.email, address: client.address, neighborhood: client.neighborhood, city: client.city,
+    }).eq("id", clientId);
+    if (updateClientError) throw new Error("O cliente já existe, mas não foi possível atualizar seus dados: " + updateClientError.message);
+  } else {
+    const { data: created, error } = await supabase.from("clients").insert(client).select("id").single();
+    if (error) {
+      // Trata também duas conversões simultâneas do mesmo CPF.
+      if (error.code !== "23505") throw new Error(error.message);
+      const { data: concurrentClients, error: retryError } = await supabase
+        .from("clients").select("id,cpf").not("cpf", "is", null);
+      const match = concurrentClients?.find((row) => digits(row.cpf || "") === client.cpf);
+      if (retryError || !match) throw new Error("Já existe um cadastro com este CPF. Atualize a página e tente novamente.");
+      clientId = match.id;
+    } else {
+      clientId = created.id;
+    }
+  }
+
+  const { error: updateError } = await supabase.from("client_intakes").update({
+    status: "converted", client_id: clientId,
+  }).eq("id", intake.id);
+  if (updateError) throw new Error("Cliente identificado, mas não foi possível concluir a solicitação: " + updateError.message);
   revalidatePath("/clientes");
-  redirect(`/contratos?clientId=${created.id}`);
+  redirect(`/contratos?clientId=${clientId}&intakeId=${intake.id}`);
 }
 
 export async function createEvent(form: FormData) {
