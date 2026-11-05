@@ -71,7 +71,7 @@ export function fillDocxTemplate(template: Buffer, values: Record<string, string
   // Renderiza cada item do pacote em um parágrafo próprio, preservando a formatação
   // do parágrafo-base e evitando que o alinhamento justificado estique as palavras.
   if (values.ITENS_PACOTE !== undefined) {
-    const itemParagraph = /<w:p(?:\s[^>]*)?>[\s\S]*?\{\{ITENS_PACOTE\}\}[\s\S]*?<\\/w:p>/;
+    const itemParagraph = /<w:p(?:\s[^>]*)?>[\s\S]*?\{\{ITENS_PACOTE\}\}[\s\S]*?<\/w:p>/;
     const match = xml.match(itemParagraph);
     if (!match) throw new Error("O modelo DOCX não contém a chave {{ITENS_PACOTE}}.");
     const lines = values.ITENS_PACOTE.split(/\r?\n/).filter((line) => line.trim());
