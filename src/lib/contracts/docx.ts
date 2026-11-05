@@ -62,28 +62,37 @@ function zipEntries(entries: ZipEntry[]): Buffer {
 function escapeXml(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 }
+function replaceParagraphContaining(xml: string, key: string, replace: (paragraph: string) => string): string {
+  // Limita a busca a um único parágrafo Word; não atravessa </w:p>.
+  const paragraphs = /<w:p\\b[^>]*>[\\s\\S]*?<\\/w:p>/g;
+  let found = false;
+  const updated = xml.replace(paragraphs, (paragraph) => {
+    if (found || !paragraph.includes(`{{${key}}}`)) return paragraph;
+    found = true;
+    return replace(paragraph);
+  });
+  if (!found) throw new Error(`O modelo DOCX não contém a chave {{${key}}} em um único parágrafo.`);
+  return updated;
+}
+
 export function fillDocxTemplate(template: Buffer, values: Record<string, string>): Buffer {
   const entries = unzipEntries(template), document = entries.find((entry) => entry.name === "word/document.xml");
   if (!document) throw new Error("O modelo DOCX não contém word/document.xml.");
   let xml = document.data.toString("utf8");
-  if (!values.CLAUSULA_FOGOS?.trim()) xml = xml.replace(/<w:p(?:\s[^>]*)?>[\s\S]*?\{\{CLAUSULA_FOGOS\}\}[\s\S]*?<\/w:p>/, "");
-  if (!values.DESLOCAMENTO?.trim() || values.DESLOCAMENTO === "0,00") xml = xml.replace(/<w:p(?:\s[^>]*)?>[\s\S]*?\{\{DESLOCAMENTO\}\}[\s\S]*?<\/w:p>/, "");
-  // Renderiza cada item do pacote em um parágrafo próprio, preservando a formatação
-  // do parágrafo-base e evitando que o alinhamento justificado estique as palavras.
+  if (!values.CLAUSULA_FOGOS?.trim()) xml = replaceParagraphContaining(xml, "CLAUSULA_FOGOS", () => "");
+  if (!values.DESLOCAMENTO?.trim() || values.DESLOCAMENTO === "0,00") xml = replaceParagraphContaining(xml, "DESLOCAMENTO", () => "");
   if (values.ITENS_PACOTE !== undefined) {
-    const itemParagraph = /<w:p(?:\s[^>]*)?>[\s\S]*?\{\{ITENS_PACOTE\}\}[\s\S]*?<\/w:p>/;
-    const match = xml.match(itemParagraph);
-    if (!match) throw new Error("O modelo DOCX não contém a chave {{ITENS_PACOTE}}.");
-    const lines = values.ITENS_PACOTE.split(/\r?\n/).filter((line) => line.trim());
-    const paragraphs = lines.map((line) => match[0].replace("{{ITENS_PACOTE}}", escapeXml(line)));
-    xml = xml.replace(itemParagraph, paragraphs.join(""));
+    const lines = values.ITENS_PACOTE.split(/\\r?\\n/).filter((line) => line.trim());
+    xml = replaceParagraphContaining(xml, "ITENS_PACOTE", (paragraph) =>
+      lines.map((line) => paragraph.replace("{{ITENS_PACOTE}}", escapeXml(line))).join(""),
+    );
   }
   for (const [key, raw] of Object.entries(values)) {
     if (key === "ITENS_PACOTE") continue;
-    const text = escapeXml(raw).replace(/\r?\n/g, "</w:t><w:br/><w:t xml:space=\"preserve\">");
+    const text = escapeXml(raw).replace(/\\r?\\n/g, "</w:t><w:br/><w:t xml:space=\\"preserve\\">");
     xml = xml.replaceAll(`{{${key}}}`, text);
   }
-  const unresolved = [...xml.matchAll(/\{\{([A-Z0-9_]+)\}\}/g)].map((match) => match[1]);
+  const unresolved = [...xml.matchAll(/\\{\\{([A-Z0-9_]+)\\}\\}/g)].map((match) => match[1]);
   if (unresolved.length) throw new Error(`Existem chaves sem valor no modelo: ${[...new Set(unresolved)].join(", ")}.`);
   document.data = Buffer.from(xml, "utf8");
   return zipEntries(entries);
