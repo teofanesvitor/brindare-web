@@ -11,7 +11,7 @@ type InitialData = {
 };
 type FieldProps = { label: string; name: string; type?: string; required?: boolean; defaultValue?: string | number; min?: string; step?: string };
 function capitalizeWords(value: string) {
-  return value.toLocaleLowerCase("pt-BR").replace(/(^|\\s|[-'])\\p{L}/gu, (match) => match.toLocaleUpperCase("pt-BR"));
+  return value.toLocaleLowerCase("pt-BR").replace(/(^|\s|[-'])\p{L}/gu, (match) => match.toLocaleUpperCase("pt-BR"));
 }
 function Field({ label, name, type = "text", required = false, defaultValue = "", min, step }: FieldProps) {
   function capitalize(event: FocusEvent<HTMLInputElement>) {

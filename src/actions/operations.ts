@@ -10,7 +10,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 const text = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
 const number = (form: FormData, key: string) => Math.max(0, Number(form.get(key) || 0));
-const titleCase = (value: string) => value.toLocaleLowerCase("pt-BR").replace(/(^|\\s|[-'])\\p{L}/gu, (match) => match.toLocaleUpperCase("pt-BR"));
+const titleCase = (value: string) => value.toLocaleLowerCase("pt-BR").replace(/(^|\s|[-'])\p{L}/gu, (match) => match.toLocaleUpperCase("pt-BR"));
 const formatCpf = (value: string) => { const d = value.replace(/\\D/g, ""); return d.length === 11 ? d.replace(/(\\d{3})(\\d{3})(\\d{3})(\\d{2})/, "$1.$2.$3-$4") : value; };
 const validCpf = (value: string) => {
   const cpf = value.replace(/\\D/g, "");
