@@ -54,7 +54,7 @@ describe("validação e normalização do contrato", () => {
     ["Essencial", 450],
     ["Celebração", 650],
     ["Luxo", 900],
-  ])("valida o preço fixo do pacote %s", (packageName, price) => {
+  ] as const)("valida o preço fixo do pacote %s", (packageName, price) => {
     const result = contractSchema.safeParse(validInput({
       packageName,
       total: String(price + 100),
