@@ -1,6 +1,6 @@
-import { CalendarDays, CircleDollarSign } from "lucide-react";
+import { CalendarDays, CircleDollarSign, FileCheck2, FileUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { registerEventPayment } from "@/actions/operations";
+import { registerEventPayment, uploadSignedEventContract } from "@/actions/operations";
 
 const money = (c: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(c / 100);
@@ -21,7 +21,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
   let query = supabase
     .from("events")
     .select(
-      "id,contract_id,client_name,event_date,event_time,toast_time,venue,package_name,total_cents,deposit_cents,balance_cents,travel_cents,status,payment_status,glasses,fireworks,sparkles,tables,champagne,event_payments(amount_cents,paid_at,payment_method,notes)"
+      "id,contract_id,client_name,event_date,event_time,toast_time,venue,package_name,total_cents,deposit_cents,balance_cents,travel_cents,status,payment_status,glasses,fireworks,sparkles,tables,champagne,event_payments(amount_cents,paid_at,payment_method,notes),event_signed_contracts(id,storage_path,original_file_name,signed_at,created_at)"
     )
     .not("contract_id", "is", null)
     .neq("status", "Cancelado")
@@ -46,7 +46,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
         <div>
           <div className="eyebrow">Operação</div>
           <h1>Agenda</h1>
-          <p>Acompanhe eventos, pagamentos recebidos e valores em aberto.</p>
+          <p>Acompanhe eventos, contratos assinados e pagamentos recebidos.</p>
         </div>
       </div>
 
@@ -89,7 +89,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
               <thead>
                 <tr>
                   <th>Data / hora</th><th>Cliente</th><th>Local</th><th>Pacote</th>
-                  <th>Valor contratado</th><th>Recebido</th><th>Saldo</th><th>Status financeiro</th><th>Registrar pagamento</th>
+                  <th>Valor contratado</th><th>Recebido</th><th>Saldo</th><th>Status financeiro</th><th>Contrato assinado</th><th>Registrar pagamento</th>
                 </tr>
               </thead>
               <tbody>
