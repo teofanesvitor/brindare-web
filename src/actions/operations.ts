@@ -14,8 +14,6 @@ const titleCase = (value: string) => value.toLocaleLowerCase("pt-BR").replace(/(
 const digits = (value: string) => value.replace(/\D/g, "");
 const formatCpf = (value: string) => {
   const d = digits(value);
-  return d.length === 11 ? d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : value;
-};
 const validCpf = (value: string) => {
   const cpf = digits(value);
   if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
@@ -47,7 +45,7 @@ export async function submitClientIntake(form: FormData) {
   if (!/^[A-Za-z0-9_-]{40,60}$/.test(token)) redirect("/cadastro-invalido");
   const payload = {
     full_name: titleCase(text(form, "full_name")), phone: digits(text(form, "phone")),
-    email: text(form, "email").toLowerCase(), cpf: formatCpf(text(form, "cpf")),
+    email: text(form, "email").toLowerCase(), cpf: digits(text(form, "cpf")),
     rg: text(form, "rg"), address: titleCase(text(form, "address")),
     neighborhood: titleCase(text(form, "neighborhood")), city: titleCase(text(form, "city")),
     event_date: text(form, "event_date"), event_time: text(form, "event_time"),
@@ -81,7 +79,7 @@ export async function convertIntakeToClient(form: FormData) {
   const p = intake.payload as Record<string, string>;
   const client = {
     full_name: titleCase(text(form, "full_name") || p.full_name || ""),
-    cpf: formatCpf(text(form, "cpf") || p.cpf || ""), rg: text(form, "rg") || p.rg || null,
+    cpf: digits(text(form, "cpf") || p.cpf || ""), rg: text(form, "rg") || p.rg || null,
     phone: digits(text(form, "phone") || p.phone || "") || null,
     email: (text(form, "email") || p.email || "").toLowerCase() || null,
     address: titleCase(text(form, "address") || p.address || ""),
