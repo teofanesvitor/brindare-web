@@ -47,10 +47,10 @@ const packagePrices: Record<string, number> = { "Essencial": 450, "Celebração"
 const centsToNumber = (cents: number) => (cents / 100).toFixed(2);
 const formatCurrency = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 function parseCurrencyInput(value: string): number {
-  const raw = value.replace(/R\\$|\\s/g, "");
+  const raw = value.replace(/R\$|\s/g, "");
   if (!raw) return 0;
   const normalized = raw.includes(",")
-    ? raw.replace(/\\./g, "").replace(",", ".")
+    ? raw.replace(/\./g, "").replace(",", ".")
     : raw;
   const amount = Number(normalized);
   return Number.isFinite(amount) && amount >= 0 ? Math.round(amount * 100) : 0;
@@ -58,10 +58,7 @@ function parseCurrencyInput(value: string): number {
 
 function MoneyField({ label, name, cents, onChange }: { label: string; name: string; cents: number; onChange: (value: number) => void }) {
   return <label className="contract-field"><span>{label}</span>
-    <input type="text" inputMode="decimal" value={formatCurrency(cents)} onFocus={(event) => event.currentTarget.select()} onChange={(event) => {
-      const digits = event.currentTarget.value.replace(/\D/g, "");
-      onChange(digits ? Number(digits) : 0);
-    }}/>
+    <input type="text" inputMode="decimal" required={name === "deposit"} value={formatCurrency(cents)} onFocus={(event) => event.currentTarget.select()} onChange={(event) => onChange(parseCurrencyInput(event.currentTarget.value))}/>
     <input type="hidden" name={name} value={centsToNumber(cents)}/>
   </label>;
 }
