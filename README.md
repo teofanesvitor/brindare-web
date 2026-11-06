@@ -124,15 +124,17 @@ A rota `/contratos` preenche o modelo DOCX oficial armazenado em `src/templates/
 ### Configuração
 
 1. Copie o modelo DOCX disponibilizado para `src/templates/contract-template.docx`.
-2. Aplique a migration `supabase/migrations/202611050001_contracts_docx_storage.sql` no Supabase.
-3. Não são necessárias credenciais Google nem variáveis OAuth para gerar DOCX.
-4. O bucket é privado; administradores autenticados recebem URLs assinadas com validade de uma hora.
+2. Aplique as migrations `202611050001_contracts_docx_storage.sql` e `202611060001_contracts_pdf_wordcraft.sql` no Supabase.
+3. Construa e publique `services/wordcraft-converter` em um serviço de containers. Configure `WORDCRAFT_CONVERTER_URL` (URL HTTPS) e `WORDCRAFT_CONVERTER_TOKEN` (mesmo segredo do serviço) nas variáveis server-side da Vercel.
+4. Sem o conversor configurado, a geração falha de forma explícita e os arquivos temporários são removidos.
+5. Não são necessárias credenciais Google nem variáveis OAuth para gerar DOCX/PDF.
+6. O bucket é privado; administradores autenticados recebem URLs assinadas com validade de uma hora para DOCX e PDF.
 
 ### Marcadores do modelo
 
 `{{CLIENTE}}`, `{{RG}}`, `{{CPF}}`, `{{ENDERECO}}`, `{{TELEFONE}}`, `{{EMAIL}}`, `{{PACOTE}}`, `{{ITENS_PACOTE}}`, `{{DATA}}`, `{{HORARIO}}`, `{{HORARIO_BRINDE}}`, `{{LOCAL}}`, `{{VALOR}}`, `{{VALOR_EXTENSO}}`, `{{ENTRADA}}`, `{{ENTRADA_EXTENSO}}`, `{{RESTANTE}}`, `{{RESTANTE_EXTENSO}}`, `{{DESLOCAMENTO}}`, `{{VENCIMENTO}}`, `{{CLAUSULA_FOGOS}}` e `{{DATA_CONTRATO}}`.
 
-Os itens do pacote são montados a partir das quantidades cadastradas. A cláusula de segurança dos fogos e a linha de deslocamento são removidas quando não se aplicam. O vencimento é calculado como um dia antes do evento. A conversão para PDF permanece fora desta etapa.
+Os itens do pacote são montados a partir das quantidades cadastradas. A cláusula de segurança dos fogos e a linha de deslocamento são removidas quando não se aplicam. O vencimento é calculado como um dia antes do evento. A conversão DOCX → PDF é realizada pelo serviço WordCraft em container separado. O DOCX original e o PDF são armazenados no bucket privado `contracts`, com links assinados por uma hora. Veja `services/wordcraft-converter/README.md` para construir e hospedar o conversor.
 
 ### Segurança e histórico
 
