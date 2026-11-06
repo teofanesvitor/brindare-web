@@ -6,7 +6,7 @@ import { contractSchema } from "@/lib/contracts/schema";
 import { generateContract } from "@/lib/contracts/generate";
 
 export type ContractActionResult =
-  | { ok: true; name: string; documentUrl: string; pdfUrl: string; docxUrl: string }
+  | { ok: true; name: string; documentUrl: string }
   | { ok: false; message: string };
 
 export async function generateContractAction(formData: FormData): Promise<ContractActionResult> {
@@ -29,14 +29,13 @@ export async function generateContractAction(formData: FormData): Promise<Contra
       deposit_cents: Math.round(parsed.data.deposit * 100),
       balance_cents: Math.round(parsed.data.balance * 100),
       docx_path: generated.storagePath,
-      pdf_path: generated.pdfPath,
       file_name: `${generated.name}.docx`,
       input_snapshot: parsed.data,
       status: "generated",
     }).select("id").single();
     if (error) {
-      await supabase.storage.from("contracts").remove([generated.storagePath, generated.pdfPath]);
-      return { ok: false, message: `DOCX/PDF criados, mas não foi possível registrar o contrato: ${error.message}` };
+      await supabase.storage.from("contracts").remove([generated.storagePath]);
+      return { ok: false, message: `DOCX criado, mas não foi possível registrar o contrato: ${error.message}` };
     }
     const { error: eventError } = await supabase.from("events").insert({
       contract_id: savedContract.id,
@@ -58,10 +57,10 @@ export async function generateContractAction(formData: FormData): Promise<Contra
       champagne: parsed.data.champagne,
       created_by: user.id,
     });
-    if (eventError) return { ok: false, message: `Contrato PDF gerado e salvo, mas o evento não entrou na agenda: ${eventError.message}` };
-    return { ok: true, name: generated.name, documentUrl: generated.pdfUrl, pdfUrl: generated.pdfUrl, docxUrl: generated.documentUrl };
+    if (eventError) return { ok: false, message: `DOCX gerado e salvo, mas o evento não entrou na agenda: ${eventError.message}` };
+    return { ok: true, name: generated.name, documentUrl: generated.documentUrl };
   } catch (error) {
-    if (generated?.storagePath) await supabase.storage.from("contracts").remove([generated.storagePath, generated.pdfPath]);
+    if (generated?.storagePath) await supabase.storage.from("contracts").remove([generated.storagePath]);
     const message = error instanceof Error ? error.message : "Falha desconhecida ao gerar contrato.";
     return { ok: false, message: `Não foi possível gerar o contrato. ${message}` };
   }
