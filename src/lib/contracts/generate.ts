@@ -5,7 +5,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { itensDoPacote, moeda, nomeContrato, numeroPorExtenso } from "@/lib/contracts/format";
 import type { ContractInput } from "@/lib/contracts/schema";
 import { fillDocxTemplate } from "@/lib/contracts/docx";
-import { convertDocxToPdf } from "@/lib/contracts/wordcraft";
 
 const STORAGE_BUCKET = "contracts";
 const TEMPLATE_PATH = join(process.cwd(), "src", "templates", "contract-template.docx");
@@ -81,25 +80,10 @@ export async function generateContract(input: ContractInput, supabase: SupabaseC
     contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", upsert: false,
   });
   if (uploadError) throw new Error(`Falha ao armazenar DOCX no Supabase: ${uploadError.message}`);
-  let pdfPath: string | null = null;
-  try {
-    const pdf = await convertDocxToPdf(document);
-    pdfPath = storagePath.replace(/\.docx$/, ".pdf");
-    const { error: pdfUploadError } = await supabase.storage.from(STORAGE_BUCKET).upload(pdfPath, pdf, {
-      contentType: "application/pdf", upsert: false,
-    });
-    if (pdfUploadError) throw new Error(`Falha ao armazenar PDF no Supabase: ${pdfUploadError.message}`);
-
-    const [{ data: docxSigned, error: docxSignedError }, { data: pdfSigned, error: pdfSignedError }] = await Promise.all([
-      supabase.storage.from(STORAGE_BUCKET).createSignedUrl(storagePath, 3600, { download: `${fileName}.docx` }),
-      supabase.storage.from(STORAGE_BUCKET).createSignedUrl(pdfPath, 3600, { download: `${fileName}.pdf` }),
-    ]);
-    if (docxSignedError || !docxSigned?.signedUrl || pdfSignedError || !pdfSigned?.signedUrl) {
-      throw new Error("Arquivos salvos, mas não foi possível gerar os links temporários.");
-    }
-    return { name: fileName, storagePath, pdfPath, documentUrl: docxSigned.signedUrl, pdfUrl: pdfSigned.signedUrl };
-  } catch (error) {
-    await supabase.storage.from(STORAGE_BUCKET).remove([storagePath, ...(pdfPath ? [pdfPath] : [])]);
-    throw error;
+  const { data: signed, error: signedError } = await supabase.storage.from(STORAGE_BUCKET).createSignedUrl(storagePath, 3600, { download: `${fileName}.docx` });
+  if (signedError || !signed?.signedUrl) {
+    await supabase.storage.from(STORAGE_BUCKET).remove([storagePath]);
+    throw new Error(`DOCX salvo, mas não foi possível gerar o link temporário: ${signedError?.message || "URL indisponível"}`);
   }
+  return { name: fileName, storagePath, documentUrl: signed.signedUrl };
 }
