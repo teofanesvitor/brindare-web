@@ -84,7 +84,7 @@ export async function generateContract(input: ContractInput, supabase: SupabaseC
   let pdfPath: string | null = null;
   try {
     const pdf = await convertDocxToPdf(document);
-    pdfPath = storagePath.replace(/\\.docx$/, ".pdf");
+    pdfPath = storagePath.replace(/\.docx$/, ".pdf");
     const { error: pdfUploadError } = await supabase.storage.from(STORAGE_BUCKET).upload(pdfPath, pdf, {
       contentType: "application/pdf", upsert: false,
     });
