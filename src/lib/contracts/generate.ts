@@ -48,6 +48,26 @@ function contractDate(): string {
   const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   return `${value.day} de ${String(value.month).toLocaleUpperCase("pt-BR")} de ${value.year}`;
 }
+
+async function convertDocxToPdf(document: Buffer): Promise<Buffer> {
+  const host = process.env.VERCEL_URL;
+  const secret = process.env.CONVERTER_SECRET;
+  if (!host || !secret) {
+    throw new Error("Conversor PDF não configurado. Defina CONVERTER_SECRET no ambiente da Vercel e execute a aplicação em uma implantação Vercel.");
+  }
+  const response = await fetch(`https://${host}/api/docx_to_pdf`, {
+    method: "POST",
+    headers: { "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "x-converter-secret": secret },
+    body: new Uint8Array(document),
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Falha na conversão DOCX para PDF (HTTP ${response.status}). ${detail.slice(0, 400)}`);
+  }
+  return Buffer.from(await response.arrayBuffer());
+}
+
 export async function generateContract(input: ContractInput, supabase: SupabaseClient, userId: string) {
   const eventDate = localDate(input.eventDate), fileName = nomeContrato(input.client, input.eventDate);
   const toastDeadline = formatDate(shiftDays(eventDate, -3));
@@ -76,14 +96,26 @@ export async function generateContract(input: ContractInput, supabase: SupabaseC
   const template = await readFile(TEMPLATE_PATH), document = fillDocxTemplate(template, values);
   const safeClient = input.client.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9_-]+/g, "_").slice(0, 70);
   const storagePath = `${userId}/${Date.now()}-${randomUUID()}-${safeClient}.docx`;
+  const pdfBuffer = await convertDocxToPdf(document);
+  const pdfStoragePath = storagePath.replace(/\\.docx$/i, ".pdf");
   const { error: uploadError } = await supabase.storage.from(STORAGE_BUCKET).upload(storagePath, document, {
     contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", upsert: false,
   });
   if (uploadError) throw new Error(`Falha ao armazenar DOCX no Supabase: ${uploadError.message}`);
-  const { data: signed, error: signedError } = await supabase.storage.from(STORAGE_BUCKET).createSignedUrl(storagePath, 3600, { download: `${fileName}.docx` });
-  if (signedError || !signed?.signedUrl) {
+  const { error: pdfUploadError } = await supabase.storage.from(STORAGE_BUCKET).upload(pdfStoragePath, pdfBuffer, {
+    contentType: "application/pdf", upsert: false,
+  });
+  if (pdfUploadError) {
     await supabase.storage.from(STORAGE_BUCKET).remove([storagePath]);
-    throw new Error(`DOCX salvo, mas não foi possível gerar o link temporário: ${signedError?.message || "URL indisponível"}`);
+    throw new Error(`DOCX salvo, mas falhou a conversão/armazenamento do PDF: ${pdfUploadError.message}`);
   }
-  return { name: fileName, storagePath, documentUrl: signed.signedUrl };
+  const [{ data: signed, error: signedError }, { data: pdfSigned, error: pdfSignedError }] = await Promise.all([
+    supabase.storage.from(STORAGE_BUCKET).createSignedUrl(storagePath, 3600, { download: `${fileName}.docx` }),
+    supabase.storage.from(STORAGE_BUCKET).createSignedUrl(pdfStoragePath, 3600, { download: `${fileName}.pdf` }),
+  ]);
+  if (signedError || !signed?.signedUrl || pdfSignedError || !pdfSigned?.signedUrl) {
+    await supabase.storage.from(STORAGE_BUCKET).remove([storagePath, pdfStoragePath]);
+    throw new Error(`Arquivos salvos, mas não foi possível gerar os links temporários: ${signedError?.message || pdfSignedError?.message || "URL indisponível"}`);
+  }
+  return { name: fileName, storagePath, pdfStoragePath, documentUrl: signed.signedUrl, pdfUrl: pdfSigned.signedUrl };
 }

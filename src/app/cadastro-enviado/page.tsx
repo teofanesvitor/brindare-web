@@ -1,1 +1,0 @@
-export default function CadastroEnviadoPage(){return <main className="public-intake-shell"><section className="public-intake-card"><div className="eyebrow">Brindare</div><h1>Dados enviados.</h1><p>Recebemos seu pré-cadastro. Nossa equipe irá revisar as informações e entrará em contato para concluir o atendimento e preparar o contrato.</p></section></main>;}

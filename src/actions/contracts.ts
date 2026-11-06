@@ -6,7 +6,7 @@ import { contractSchema } from "@/lib/contracts/schema";
 import { generateContract } from "@/lib/contracts/generate";
 
 export type ContractActionResult =
-  | { ok: true; name: string; documentUrl: string }
+  | { ok: true; name: string; documentUrl: string; pdfUrl: string }
   | { ok: false; message: string };
 
 export async function generateContractAction(formData: FormData): Promise<ContractActionResult> {
@@ -58,7 +58,7 @@ export async function generateContractAction(formData: FormData): Promise<Contra
       created_by: user.id,
     });
     if (eventError) return { ok: false, message: `DOCX gerado e salvo, mas o evento não entrou na agenda: ${eventError.message}` };
-    return { ok: true, name: generated.name, documentUrl: generated.documentUrl };
+    return { ok: true, name: generated.name, documentUrl: generated.documentUrl, pdfUrl: generated.pdfUrl };
   } catch (error) {
     if (generated?.storagePath) await supabase.storage.from("contracts").remove([generated.storagePath]);
     const message = error instanceof Error ? error.message : "Falha desconhecida ao gerar contrato.";
