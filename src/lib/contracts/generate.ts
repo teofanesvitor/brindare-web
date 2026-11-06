@@ -97,7 +97,7 @@ export async function generateContract(input: ContractInput, supabase: SupabaseC
   const safeClient = input.client.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9_-]+/g, "_").slice(0, 70);
   const storagePath = `${userId}/${Date.now()}-${randomUUID()}-${safeClient}.docx`;
   const pdfBuffer = await convertDocxToPdf(document);
-  const pdfStoragePath = storagePath.replace(/\\.docx$/i, ".pdf");
+  const pdfStoragePath = storagePath.replace(/\.docx$/i, ".pdf");
   const { error: uploadError } = await supabase.storage.from(STORAGE_BUCKET).upload(storagePath, document, {
     contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", upsert: false,
   });

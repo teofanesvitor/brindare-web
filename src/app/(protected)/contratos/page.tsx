@@ -24,10 +24,10 @@ export default async function ContratosPage({ searchParams }: { searchParams: Pr
   } : undefined;
   const history = await Promise.all((contracts || []).map(async (item) => {
     if (!item.docx_path) return { ...item, docxUrl: null };
-    const pdfPath = item.docx_path.replace(/\\.docx$/i, ".pdf");
+    const pdfPath = item.docx_path.replace(/\.docx$/i, ".pdf");
     const [{ data: docxData }, { data: pdfData }] = await Promise.all([
       supabase.storage.from("contracts").createSignedUrl(item.docx_path, 3600, { download: item.file_name || "contrato.docx" }),
-      supabase.storage.from("contracts").createSignedUrl(pdfPath, 3600, { download: (item.file_name || "contrato.docx").replace(/\\.docx$/i, ".pdf") }),
+      supabase.storage.from("contracts").createSignedUrl(pdfPath, 3600, { download: (item.file_name || "contrato.docx").replace(/\.docx$/i, ".pdf") }),
     ]);
     return { ...item, docxUrl: docxData?.signedUrl || null, pdfUrl: pdfData?.signedUrl || null };
   }));
