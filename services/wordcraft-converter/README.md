@@ -11,7 +11,7 @@ docker run --rm -p 8080:8080 \
   brindare-wordcraft-converter
 ```
 
-A imagem instala WordCraft CLI 0.16.0. Para atualizar, passe `--build-arg WORDCRAFT_VERSION=x.y.z` e valide a versão publicada em https://github.com/storytold/wordcraft/releases.
+A imagem instala WordCraft CLI 0.15.2. Para atualizar, passe `--build-arg WORDCRAFT_VERSION=x.y.z` e valide a versão publicada em https://github.com/storytold/wordcraft/releases.
 
 ## API
 
