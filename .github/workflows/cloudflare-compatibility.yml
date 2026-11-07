@@ -1,0 +1,61 @@
+name: Cloudflare compatibility test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: cloudflare-build-placeholder
+      NEXT_PUBLIC_APP_URL: https://brindare-web-test.workers.dev
+    steps:
+      - name: Checkout test branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Regenerate lockfile for Cloudflare dependencies
+        run: |
+          npm install --package-lock-only --ignore-scripts
+          if ! git diff --quiet -- package-lock.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "chore: refresh lockfile for Cloudflare test"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+      - name: Install locked dependencies
+        run: npm ci
+      - name: TypeScript validation
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: ESLint
+        run: npm run lint
+      - name: Build for Cloudflare Workers
+        run: npx opennextjs-cloudflare build
+      - name: Smoke test in Workers runtime
+        shell: bash
+        run: |
+          npx wrangler dev --local --ip 127.0.0.1 --port 8787 > /tmp/brindare-wrangler.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8787/setup > /tmp/brindare-setup.html; then
+              echo "Workers runtime responded successfully on /setup."
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/brindare-wrangler.log
+          exit 1
