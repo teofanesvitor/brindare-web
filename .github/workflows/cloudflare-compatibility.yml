@@ -8,12 +8,9 @@ permissions:
 
 jobs:
   validate:
+    if: github.ref == 'refs/heads/deploy/cloudflare-free-test'
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: cloudflare-build-placeholder
-      NEXT_PUBLIC_APP_URL: https://brindare-web-test.workers.dev
     steps:
       - name: Checkout test branch
         uses: actions/checkout@v4
