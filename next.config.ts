@@ -1,4 +1,6 @@
 import type { NextConfig } from "next";
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
@@ -12,4 +14,7 @@ const nextConfig: NextConfig = {
     "/*": ["./src/templates/contract-template.docx"],
   },
 };
+
+initOpenNextCloudflareForDev();
+
 export default nextConfig;
