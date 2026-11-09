@@ -220,6 +220,19 @@ export async function createInventoryMovement(form: FormData) {
   redirect("/estoque?movement=registered");
 }
 
+export async function markInventoryInstallmentPaid(form: FormData) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const installmentId = text(form, "installment_id");
+  if (!installmentId) throw new Error("Parcela inválida.");
+  const { error } = await supabase.rpc("mark_inventory_purchase_installment_paid", {
+    p_installment_id: installmentId,
+  });
+  if (error) throw new Error(error.message || "Não foi possível quitar a parcela.");
+  revalidatePath("/financeiro");
+  redirect("/financeiro?installment=paid");
+}
+
 export async function updateEventStatus(form: FormData) {
   await requireAdmin();
   const supabase = await createClient();
