@@ -1,27 +1,19 @@
-# Cloudflare Workers — ambiente de teste
+# Cloudflare Workers — ambiente de teste Brindare
 
-Esta branch prepara uma implantação de teste do Brindare Web na Cloudflare Workers usando o adaptador OpenNext. A branch `main` não é modificada.
+A branch `deploy/cloudflare-free-test` prepara o deploy do sistema existente usando Next.js 15 + OpenNext + Wrangler. A branch `main` permanece intocada.
 
-## Estado
+## Estado e pré-requisitos
 
-- [x] Branch isolada baseada em `feat/agenda-operational-improvements`.
-- [x] Configuração inicial do OpenNext e Wrangler.
-- [x] Configuração Node.js compatível com APIs utilizadas pelo gerador DOCX.
-- [ ] Regenerar `package-lock.json` com `npm install`.
-- [ ] Executar typecheck, testes, lint e build Next.js.
-- [ ] Executar build e preview OpenNext no runtime Workers.
-- [ ] Corrigir incompatibilidades detectadas.
-- [ ] Configurar variáveis e secrets na conta Cloudflare.
-- [ ] Publicar somente no subdomínio de teste `workers.dev`.
+- OpenNext e Wrangler configurados.
+- Build e preview ainda precisam ser executados no runtime Workers.
+- Nenhum deploy é executado automaticamente por este workflow.
+- O workflow de compatibilidade usa apenas permissões GitHub de leitura e `npm ci` com o lockfile versionado.
+- Nenhuma credencial real deve ser adicionada ao repositório ou aos logs de CI.
 
-## Dependências
-
-O adaptador OpenNext está fixado em `1.20.16`. O Next.js e o eslint-config-next foram atualizados para a série `15.5.29+`, que atende ao requisito mínimo de segurança da versão atual do adaptador. Wrangler está na série 4.
-
-Após atualizar as dependências, execute:
+## Verificações
 
 ```bash
-npm install
+npm ci
 npm run typecheck
 npm test
 npm run lint
@@ -29,28 +21,44 @@ npm run build
 npm run preview
 ```
 
-O comando `preview` compila o projeto com OpenNext e inicia o runtime local do Workers. Ele é o teste decisivo antes de qualquer deploy.
+O preview é obrigatório antes do deploy. Validar especialmente middleware/cookies do Supabase, Server Actions, geração DOCX, uploads e downloads.
 
-## Variáveis de ambiente
+## Variáveis e secrets
 
-Configurar no ambiente de teste, sem gravar valores neste repositório:
+Configurar no Worker:
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `NEXT_PUBLIC_APP_URL` — usar a URL de teste `https://brindare-web-test.<subdominio>.workers.dev` depois que o subdomínio for definido.
-- `SUPABASE_SERVICE_ROLE_KEY` — secret privado, somente se as operações server-side que usam `createAdminClient()` forem mantidas.
+- `NEXT_PUBLIC_SUPABASE_URL` — variável pública.
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — variável pública.
+- `NEXT_PUBLIC_APP_URL` — URL HTTPS `workers.dev` final.
+- `SUPABASE_SERVICE_ROLE_KEY` — secret privado obrigatório para operações administrativas server-side.
 
-Não utilizar prefixo `NEXT_PUBLIC_` na service role. Não adicionar credenciais Google, Supabase ou tokens ao GitHub.
+Não usar prefixo `NEXT_PUBLIC_` na service role. O fluxo DOCX atual não necessita OAuth Google. Se outras rotas passarem a usar Google APIs, configurar os secrets somente após revisar sua necessidade.
 
-## Limites e custo
+Para preview local, utilizar `.dev.vars` (ignorado pelo Git) e manter apenas valores fictícios em `.dev.vars.example`.
 
-A implantação deve permanecer no plano gratuito da Cloudflare. Não habilitar Workers Paid, R2 pago, domínio próprio pago ou outros serviços com cobrança. Antes de publicar, conferir no painel da Cloudflare que o Worker está no plano Free e revisar os limites atuais.
+## Supabase
 
-O Supabase permanece separado e deve estar no plano Free. Projetos Supabase Free podem ser pausados por inatividade e não oferecem backup automático; isso deve ser aceito conscientemente antes do uso com dados reais.
+1. Criar projeto no plano Free.
+2. Aplicar todas as migrations em ordem, incluindo `202611090001_deploy_hardening.sql`.
+3. Conferir políticas RLS e bucket privado `contracts`.
+4. Configurar Site URL e Redirect URLs em Authentication para o endereço `workers.dev` e callback `/auth/callback`.
+5. Provisionar administradores com o script local em ambiente confiável.
 
-## Observações técnicas
+O bucket aceita DOCX, PDF, JPG e PNG, com limite de 10 MB. A migration de hardening ajusta políticas de eventos para permitir que todos os administradores operem a agenda e adiciona RPCs transacionais para estoque e criação de contrato/evento.
 
-- O modelo DOCX é incluído pelo `outputFileTracingIncludes` já existente. A leitura por `node:fs/promises` precisa ser validada no preview Workers.
-- O tamanho máximo de upload precisa ser alinhado entre Server Actions, validação de formulário e bucket Supabase.
-- Não há conversão PDF incluída nesta preparação. O fluxo DOCX existente será testado sem introduzir serviço externo.
-- Nenhum deploy de produção será realizado por esta branch.
+## Publicação sem custo
+
+- Manter Workers no plano Free.
+- Utilizar o subdomínio gratuito `workers.dev`.
+- Não habilitar Workers Paid, R2 pago, domínio próprio pago ou serviços adicionais com cobrança.
+- Confirmar no painel Cloudflare os limites e o plano antes de publicar.
+
+O Supabase Free pode pausar projetos por inatividade e não fornece backup automático. Não considerar o ambiente adequado para dados reais sem exportação periódica e plano de recuperação testado.
+
+## Limitações conhecidas antes da liberação
+
+- A leitura do template DOCX em filesystem virtual precisa ser confirmada no preview Workers.
+- A CPU do Workers Free pode limitar geração DOCX; medir com o modelo real.
+- O tamanho comprimido do Worker deve ficar dentro do limite vigente do plano.
+- A cláusula jurídica de segurança para fogos não foi recuperada do modelo/texto oficial; geração com fogos fica bloqueada até confirmação.
+- Nenhum deploy de produção ou merge em `main` está autorizado por este procedimento.
