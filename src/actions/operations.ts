@@ -244,6 +244,7 @@ export async function updateEventStatus(form: FormData) {
   const { error } = await supabase.from("events").update({ status }).eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/agenda");
+  revalidatePath("/estoque");
   revalidatePath("/dashboard");
 }
 
