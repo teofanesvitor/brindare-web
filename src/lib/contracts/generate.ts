@@ -1,13 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { itensDoPacote, moeda, nomeContrato, numeroPorExtenso } from "@/lib/contracts/format";
 import type { ContractInput } from "@/lib/contracts/schema";
 import { fillDocxTemplate } from "@/lib/contracts/docx";
+import { CONTRACT_TEMPLATE_BASE64 } from "@/lib/contracts/contract-template";
 
 const STORAGE_BUCKET = "contracts";
-const TEMPLATE_PATH = join(process.cwd(), "src", "templates", "contract-template.docx");
 function localDate(value: string): Date {
   const [year, month, day] = value.split("-").map(Number);
   return new Date(Date.UTC(year, month - 1, day, 12));
@@ -77,7 +75,8 @@ export async function generateContract(input: ContractInput, supabase: SupabaseC
     TACAS: String(input.tacas), TACAS_EXTENSO: quantityInWords(input.tacas),
     DATA_CONTRATO: contractDate(),
   };
-  const template = await readFile(TEMPLATE_PATH), document = fillDocxTemplate(template, values);
+  const template = Buffer.from(CONTRACT_TEMPLATE_BASE64, "base64");
+  const document = fillDocxTemplate(template, values);
   const safeClient = input.client.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9_-]+/g, "_").slice(0, 70);
   const storagePath = `${userId}/${Date.now()}-${randomUUID()}-${safeClient}.docx`;
   const { error: uploadError } = await supabase.storage.from(STORAGE_BUCKET).upload(storagePath, document, {
