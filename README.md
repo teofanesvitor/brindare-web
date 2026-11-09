@@ -1,142 +1,84 @@
-# Brindare Web — Fase 1
+# Brindare Web
 
-Fundação do sistema web administrativo da Brindare: Next.js + TypeScript, Supabase Auth/PostgreSQL, layout responsivo e provisionamento seguro de até cinco administradores.
+Sistema administrativo interno da Brindare para cinco administradores. Stack: Next.js 15, TypeScript, Supabase Auth/PostgreSQL/Storage e OpenNext para Cloudflare Workers.
+
+## Funcionalidades
+
+- Autenticação e autorização de administradores.
+- Cadastro de clientes e link público de pré-cadastro com token de uso único.
+- Agenda de eventos.
+- Controle de estoque e movimentações.
+- Registro de pagamentos e acompanhamento financeiro.
+- Geração de contratos DOCX a partir do modelo oficial.
+- Upload privado de contratos assinados.
 
 ## Requisitos
 
-- Node.js 20.9 ou superior (recomendado LTS)
-- npm
-- Projeto Supabase
-- Git
+- Node.js 22 LTS e npm.
+- Projeto Supabase.
+- Git.
 
+## Instalação
 
-## Instalação no Windows e tela de configuração
-
-Consulte `SETUP-WINDOWS.md` para o passo a passo específico do PowerShell. Se as variáveis públicas do Supabase ainda não estiverem configuradas, a aplicação encaminha automaticamente para `/setup`, com instruções para criar o `.env.local`; assim, a falta de credenciais não causa mais o Runtime ZodError na abertura.
-
-No PowerShell, use `npm.cmd` se o Windows bloquear a execução de `npm.ps1`: `npm.cmd install` e `npm.cmd run dev`.
-
-## 1. Instalação local
+No Windows, siga `SETUP-WINDOWS.md`. Em resumo:
 
 ```bash
-npm install
+npm ci
 cp .env.example .env.local
+npm run dev
 ```
 
-Edite `.env.local` com os valores reais do projeto Supabase:
+Preencha as variáveis de `.env.local`. A service role é necessária apenas para operações server-side privilegiadas e para o script de provisionamento. Nunca exponha essa chave em variáveis `NEXT_PUBLIC_*`, no navegador ou no Git.
 
-- `NEXT_PUBLIC_SUPABASE_URL`: URL do projeto.
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: chave publicável/anon do projeto.
-- `SUPABASE_SERVICE_ROLE_KEY`: chave privilegiada, somente para scripts server-side. Nunca publicar ou prefixar com `NEXT_PUBLIC_`.
-- `NEXT_PUBLIC_APP_URL`: `http://localhost:3000` no ambiente local.
-- `ADMIN_EMAILS`: de um a cinco e-mails distintos, separados por vírgula.
+## Banco de dados
 
-Não commitar `.env.local`.
+Aplique todas as migrations de `supabase/migrations/` em ordem cronológica. A lista completa e o procedimento para Windows estão em `SETUP-WINDOWS.md`.
 
-## 2. Criar o banco e aplicar migration
+As migrations são aditivas. Não edite migrations já aplicadas em ambientes existentes; crie uma nova migration para toda alteração de schema, RLS ou Storage.
 
-No painel Supabase, abra **SQL Editor** e execute o conteúdo de:
+## Provisionamento dos administradores
 
-`supabase/migrations/202611020001_initial_profiles.sql`
-
-Alternativamente, instale a Supabase CLI, associe o projeto e execute:
-
-```bash
-supabase login
-supabase link --project-ref SEU_PROJECT_REF
-supabase db push
-```
-
-O arquivo cria `profiles`, o gatilho que cria perfil como `user` para novas contas, a função `is_admin()` e RLS. A aplicação não permite que usuários autenticados alterem sua própria role.
-
-## 3. Provisionar os administradores
-
-Preencha `ADMIN_EMAILS` no `.env.local` com um a cinco endereços reais da equipe. Para o primeiro administrador, configure o e-mail principal da empresa. Em seguida:
+Configure `ADMIN_EMAILS` com os e-mails reais (um a cinco) e execute em ambiente confiável:
 
 ```bash
 npm run provision:admins
 ```
 
-O script usa a chave service role somente no processo local, envia convite para os endereços e atribui a role `admin`. Cada pessoa define sua própria senha pelo convite recebido. O script valida de um a cinco e-mails distintos. Não coloque senhas de usuários no código ou no GitHub.
+O script usa `SUPABASE_SERVICE_ROLE_KEY` para enviar convites e atribuir a role administrativa. Cada administrador define sua própria senha pelo convite.
 
-**Importante:** execute o provisionamento apenas por uma máquina confiável. Não disponibilize a service role no frontend, no GitHub ou em variáveis `NEXT_PUBLIC_*`.
-
-## 4. Executar
+## Verificações locais
 
 ```bash
-npm run dev
-```
-
-Acesse http://localhost:3000. A rota `/` redireciona para `/dashboard`; sem sessão, o middleware atualiza a sessão e a proteção server-side direciona para `/login`.
-
-## 5. Testes e verificações
-
-```bash
-npm test
 npm run typecheck
+npm test
 npm run lint
 npm run build
+npm run preview
 ```
 
-Os testes atuais validam a lista de um a cinco administradores (quantidade, duplicidade e formato de e-mail). A cobertura de regras de negócio será ampliada nas fases seguintes.
+O preview utiliza o runtime local do Cloudflare Workers via Wrangler. Um build Next.js bem-sucedido, isoladamente, não comprova compatibilidade com Workers.
 
-## 6. Deploy na Vercel
+## Deploy Cloudflare
 
-1. Envie este repositório para um repositório privado no GitHub.
-2. Importe o repositório na Vercel.
-3. Configure as variáveis `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` e `NEXT_PUBLIC_APP_URL` no projeto Vercel. **Não adicione `SUPABASE_SERVICE_ROLE_KEY` ao ambiente de produção do frontend**, a menos que uma futura função server-side explicitamente necessite dela e tenha sido revisada.
-4. Configure `NEXT_PUBLIC_APP_URL` com o domínio HTTPS definitivo.
-5. No Supabase, em Authentication → URL Configuration, configure Site URL e Redirect URLs para o domínio da aplicação e `http://localhost:3000/auth/callback` para desenvolvimento.
-6. Faça o deploy. Execute o provisionamento dos administradores em ambiente confiável, com `SUPABASE_SERVICE_ROLE_KEY` disponível apenas nesse ambiente de operação.
+O ambiente de teste está isolado na branch `deploy/cloudflare-free-test`. Consulte `CLOUDFLARE-DEPLOYMENT.md`.
 
-## 7. Estrutura
+Não faça merge em `main` nem execute deploy público antes de concluir a validação de runtime, autenticação, permissões, Storage e geração de documentos.
 
-```text
-src/app/                 Rotas e layouts Next.js
-src/actions/              Server Actions de autenticação
-src/components/            Componentes compartilhados
-src/lib/supabase/          Clientes Supabase browser/server/admin
-src/lib/validation/        Validações compartilhadas
-supabase/migrations/       Evolução versionada do banco
-scripts/                   Provisionamento administrativo
- tests/                    Testes automatizados
-```
+## Contratos DOCX
 
-## Segurança nesta fase
+O fluxo atual preenche `src/templates/contract-template.docx`, armazena o resultado no bucket privado `contracts` e retorna URL assinada temporária. Esse fluxo não exige OAuth Google.
 
-- A role `admin` é atribuída por script privilegiado, nunca pelo browser.
-- A tabela `profiles` tem RLS habilitado.
-- Usuários autenticados só podem consultar o próprio perfil; administradores podem consultar os perfis.
-- Não há política de escrita para `authenticated` em `profiles`.
-- O layout protegido valida usuário e role no servidor.
-- A service role não deve ser exposta ao cliente.
+A geração com fogos está temporariamente bloqueada até que o texto jurídico oficial da cláusula de segurança seja confirmado e incorporado ao modelo. Essa proteção evita emitir contrato incompleto ou com redação jurídica inventada.
 
-## Escopo e limitações da Fase 1
+## Segurança e operação
 
-Esta entrega é a fundação: login administrativo, dashboard inicial, estrutura de banco para perfis, layout e documentação. Agenda, clientes, contratos, financeiro, estoque e integração Google serão implementados nas fases seguintes. Os indicadores do dashboard são placeholders e não representam dados reais ainda.
+- A autorização administrativa é validada no servidor e reforçada por RLS.
+- O bucket de contratos é privado; URLs de download expiram.
+- O campo `created_by` registra autoria, mas todos os administradores autorizados podem operar os eventos.
+- Movimentações de estoque são serializadas no PostgreSQL para evitar saídas concorrentes acima do saldo.
+- Contrato e evento são persistidos na mesma transação.
+- Não comite `.env.local`, `.dev.vars`, tokens, chaves ou credenciais.
 
-Antes de produção, validar domínio, política de convites, SMTP do Supabase, backups do projeto, MFA para administradores e limites de acesso. O provisionamento atual aceita de um a cinco e-mails configurados; a restrição de exatamente cinco contas ativas deve também ser monitorada operacionalmente caso a equipe mude.
+## Limitações do plano gratuito
 
-## Geração de contratos
-
-A rota `/contratos` preenche o modelo DOCX oficial armazenado em `src/templates/contract-template.docx`. O arquivo original permanece inalterado. Cada geração cria uma nova cópia DOCX e a armazena no bucket privado `contracts` do Supabase Storage, vinculando o caminho à tabela `contracts`.
-
-### Configuração
-
-1. Copie o modelo DOCX disponibilizado para `src/templates/contract-template.docx`.
-2. Aplique a migration `supabase/migrations/202611050001_contracts_docx_storage.sql` no Supabase.
-3. Não são necessárias credenciais Google nem variáveis OAuth para gerar DOCX.
-4. O bucket é privado; administradores autenticados recebem URLs assinadas com validade de uma hora.
-
-### Marcadores do modelo
-
-`{{CLIENTE}}`, `{{RG}}`, `{{CPF}}`, `{{ENDERECO}}`, `{{TELEFONE}}`, `{{EMAIL}}`, `{{PACOTE}}`, `{{ITENS_PACOTE}}`, `{{DATA}}`, `{{HORARIO}}`, `{{HORARIO_BRINDE}}`, `{{LOCAL}}`, `{{VALOR}}`, `{{VALOR_EXTENSO}}`, `{{ENTRADA}}`, `{{ENTRADA_EXTENSO}}`, `{{RESTANTE}}`, `{{RESTANTE_EXTENSO}}`, `{{DESLOCAMENTO}}`, `{{VENCIMENTO}}`, `{{CLAUSULA_FOGOS}}` e `{{DATA_CONTRATO}}`.
-
-Os itens do pacote são montados a partir das quantidades cadastradas. A cláusula de segurança dos fogos e a linha de deslocamento são removidas quando não se aplicam. O vencimento é calculado como um dia antes do evento. A conversão para PDF permanece fora desta etapa.
-
-### Segurança e histórico
-
-- O bucket `contracts` é privado e aceita apenas arquivos DOCX.
-- Os links são assinados por uma hora; o banco armazena o caminho, não uma URL pública.
-- Cada geração recebe um nome único e não sobrescreve documentos anteriores.
-- As colunas antigas do Google permanecem nullable para preservar o histórico legado.
+O uso depende dos limites vigentes do Cloudflare Workers Free e do Supabase Free. Projetos Supabase Free podem pausar por inatividade e não incluem backup automático. Antes de usar dados operacionais, estabeleça exportação periódica e uma rotina de restauração testada.
