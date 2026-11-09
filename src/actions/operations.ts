@@ -162,24 +162,20 @@ export async function createInventoryItem(form: FormData) {
 }
 
 export async function createInventoryMovement(form: FormData) {
-  const { user } = await requireAdmin();
+  await requireAdmin();
   const supabase = await createClient();
   const itemId = text(form, "item_id");
   const quantity = number(form, "quantity");
   const movementType = text(form, "movement_type");
   if (!itemId || quantity <= 0) throw new Error("Selecione um item e informe uma quantidade maior que zero.");
   if (movementType !== "entrada" && movementType !== "saida") throw new Error("Tipo de movimentação inválido.");
-  if (movementType === "saida") {
-    const { data: history, error: historyError } = await supabase.from("inventory_movements").select("movement_type,quantity").eq("item_id", itemId);
-    if (historyError) throw new Error(historyError.message);
-    const balance = (history || []).reduce((sum, row) => sum + (row.movement_type === "entrada" ? Number(row.quantity) : -Number(row.quantity)), 0);
-    if (quantity > balance) throw new Error(`Saldo insuficiente. Disponível: ${balance}.`);
-  }
-  const { error } = await supabase.from("inventory_movements").insert({
-    item_id: itemId, movement_type: movementType,
-    quantity, description: text(form, "description") || null, created_by: user.id,
+  const { error } = await supabase.rpc("register_inventory_movement", {
+    p_item_id: itemId,
+    p_movement_type: movementType,
+    p_quantity: quantity,
+    p_description: text(form, "description") || null,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(error.message || "Não foi possível registrar a movimentação.");
   revalidatePath("/estoque");
 }
 
@@ -195,4 +191,90 @@ export async function updateEventStatus(form: FormData) {
   if (error) throw new Error(error.message);
   revalidatePath("/agenda");
   revalidatePath("/dashboard");
+}
+
+
+export async function registerEventPayment(form: FormData) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const eventId = text(form, "event_id");
+  const amount = number(form, "amount");
+  const paidAt = text(form, "paid_at");
+  const paymentMethod = text(form, "payment_method");
+  const notes = text(form, "notes");
+
+  if (!eventId || !Number.isFinite(amount) || amount <= 0) {
+    throw new Error("Selecione o evento e informe um valor válido.");
+  }
+  if (paidAt && !/^\d{4}-\d{2}-\d{2}$/.test(paidAt)) {
+    throw new Error("Informe uma data de pagamento válida.");
+  }
+
+  const { error } = await supabase.rpc("register_event_payment", {
+    p_event_id: eventId,
+    p_amount_cents: Math.round(amount * 100),
+    p_paid_at: paidAt || new Date().toISOString().slice(0, 10),
+    p_payment_method: paymentMethod || null,
+    p_notes: notes || null,
+  });
+  if (error) throw new Error(error.message || "Não foi possível registrar o pagamento.");
+
+  revalidatePath("/agenda");
+  revalidatePath("/dashboard");
+  redirect("/agenda?payment=registered");
+}
+
+
+export async function uploadSignedEventContract(form: FormData) {
+  const { user } = await requireAdmin();
+  const supabase = await createClient();
+  const admin = createAdminClient();
+  const eventId = text(form, "event_id");
+  const file = form.get("signed_contract");
+
+  if (!eventId || !(file instanceof File) || file.size === 0) {
+    throw new Error("Selecione o evento e o arquivo do contrato assinado.");
+  }
+  const allowedTypes: Record<string, string> = {
+    "application/pdf": "pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+    "image/jpeg": "jpg",
+    "image/png": "png",
+  };
+  const extension = allowedTypes[file.type];
+  if (!extension) {
+    throw new Error("Formato não permitido. Envie PDF, DOCX, JPG ou PNG.");
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    throw new Error("O arquivo deve ter no máximo 10 MB.");
+  }
+
+  const { data: event, error: eventError } = await supabase
+    .from("events").select("id").eq("id", eventId).maybeSingle();
+  if (eventError || !event) throw new Error("Evento não encontrado ou sem permissão.");
+
+  const safeName = file.name.replace(/[^\p{L}\p{N}._-]/gu, "_").slice(-100) || `contrato-assinado.${extension}`;
+  const storagePath = `signed/${eventId}/${crypto.randomUUID()}.${extension}`;
+  const { error: uploadError } = await admin.storage.from("contracts").upload(
+    storagePath, await file.arrayBuffer(),
+    { contentType: file.type, upsert: false }
+  );
+  if (uploadError) throw new Error("Não foi possível armazenar o contrato assinado: " + uploadError.message);
+
+  const { error: recordError } = await supabase.from("event_signed_contracts").insert({
+    event_id: eventId,
+    storage_path: storagePath,
+    original_file_name: safeName,
+    mime_type: file.type,
+    file_size: file.size,
+    created_by: user.id,
+  });
+  if (recordError) {
+    await admin.storage.from("contracts").remove([storagePath]);
+    throw new Error("Arquivo enviado, mas não foi possível registrar o recebimento: " + recordError.message);
+  }
+
+  revalidatePath("/agenda");
+  revalidatePath("/dashboard");
+  redirect("/agenda?signed=uploaded");
 }

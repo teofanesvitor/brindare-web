@@ -1,13 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { itensDoPacote, moeda, nomeContrato, numeroPorExtenso } from "@/lib/contracts/format";
 import type { ContractInput } from "@/lib/contracts/schema";
 import { fillDocxTemplate } from "@/lib/contracts/docx";
+import { CONTRACT_TEMPLATE_BASE64 } from "@/lib/contracts/contract-template";
 
 const STORAGE_BUCKET = "contracts";
-const TEMPLATE_PATH = join(process.cwd(), "src", "templates", "contract-template.docx");
 function localDate(value: string): Date {
   const [year, month, day] = value.split("-").map(Number);
   return new Date(Date.UTC(year, month - 1, day, 12));
@@ -49,6 +47,9 @@ function contractDate(): string {
   return `${value.day} de ${String(value.month).toLocaleUpperCase("pt-BR")} de ${value.year}`;
 }
 export async function generateContract(input: ContractInput, supabase: SupabaseClient, userId: string) {
+  if (input.fogos > 0) {
+    throw new Error("A cláusula oficial de segurança para fogos precisa ser definida no modelo antes de gerar contratos com fogos.");
+  }
   const eventDate = localDate(input.eventDate), fileName = nomeContrato(input.client, input.eventDate);
   const toastDeadline = formatDate(shiftDays(eventDate, -3));
   const toastText = input.toastTime?.trim()
@@ -65,7 +66,8 @@ export async function generateContract(input: ContractInput, supabase: SupabaseC
     TELEFONE: input.phone ? formatPhone(input.phone) : "Não informado", EMAIL: input.email || "Não informado",
     PACOTE: input.packageName, ITENS_PACOTE: itensDoPacote(input), DATA: formatDate(eventDate),
     HORARIO: formatTime(input.eventTime), HORARIO_BRINDE: toastText,
-    LOCAL: input.venue, VALOR: moeda(input.total), VALOR_EXTENSO: numeroPorExtenso(input.total),
+    LOCAL: input.venue, DESLOCAMENTO: input.travel > 0 ? moeda(input.travel) : "",
+    CLAUSULA_FOGOS: "", VALOR: moeda(input.total), VALOR_EXTENSO: numeroPorExtenso(input.total),
     ENTRADA: moeda(input.deposit), ENTRADA_EXTENSO: numeroPorExtenso(input.deposit),
     RESTANTE: moeda(input.balance), RESTANTE_EXTENSO: numeroPorExtenso(input.balance),
     VENCIMENTO: formatDate(shiftDays(eventDate, -1)),
@@ -73,7 +75,8 @@ export async function generateContract(input: ContractInput, supabase: SupabaseC
     TACAS: String(input.tacas), TACAS_EXTENSO: quantityInWords(input.tacas),
     DATA_CONTRATO: contractDate(),
   };
-  const template = await readFile(TEMPLATE_PATH), document = fillDocxTemplate(template, values);
+  const template = Buffer.from(CONTRACT_TEMPLATE_BASE64, "base64");
+  const document = fillDocxTemplate(template, values);
   const safeClient = input.client.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9_-]+/g, "_").slice(0, 70);
   const storagePath = `${userId}/${Date.now()}-${randomUUID()}-${safeClient}.docx`;
   const { error: uploadError } = await supabase.storage.from(STORAGE_BUCKET).upload(storagePath, document, {

@@ -1,0 +1,51 @@
+name: Cloudflare compatibility test
+
+on:
+  push:
+    branches:
+      - deploy/cloudflare-free-test
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    if: github.ref == 'refs/heads/deploy/cloudflare-free-test'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout test branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: TypeScript validation
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: ESLint
+        run: npm run lint
+      - name: Build for Cloudflare Workers
+        run: npx opennextjs-cloudflare build
+      - name: Smoke test in Workers runtime
+        shell: bash
+        run: |
+          npx wrangler dev --local --ip 127.0.0.1 --port 8787 > /tmp/brindare-wrangler.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8787/setup > /tmp/brindare-setup.html; then
+              echo "Workers runtime responded successfully on /setup."
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/brindare-wrangler.log
+          exit 1
