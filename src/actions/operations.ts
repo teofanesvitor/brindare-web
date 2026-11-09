@@ -174,7 +174,7 @@ export async function createInventoryPurchase(form: FormData) {
   if (!itemId || quantity <= 0 || total <= 0) {
     throw new Error("Selecione o item e informe quantidade e valor total maiores que zero.");
   }
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(purchaseDate)) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(purchaseDate)) {
     throw new Error("Informe uma data de compra válida.");
   }
   if (!["Dinheiro", "Pix", "Débito", "Crédito"].includes(paymentMethod)) {
