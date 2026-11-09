@@ -156,9 +156,49 @@ export async function createInventoryItem(form: FormData) {
   const { error } = await supabase.from("inventory_items").insert({
     name: text(form, "name"), unit: text(form, "unit") || "unidade",
     minimum_quantity: number(form, "minimum_quantity"),
+    item_type: text(form, "item_type") === "reutilizavel" ? "reutilizavel" : "consumivel",
   });
   if (error) throw new Error(error.message);
   revalidatePath("/estoque");
+}
+
+export async function createInventoryPurchase(form: FormData) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const itemId = text(form, "item_id");
+  const quantity = number(form, "quantity");
+  const total = number(form, "total");
+  const purchaseDate = text(form, "purchase_date");
+  const paymentMethod = text(form, "payment_method");
+  const installments = Math.floor(number(form, "installments") || 1);
+  if (!itemId || quantity <= 0 || total <= 0) {
+    throw new Error("Selecione o item e informe quantidade e valor total maiores que zero.");
+  }
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(purchaseDate)) {
+    throw new Error("Informe uma data de compra válida.");
+  }
+  if (!["Dinheiro", "Pix", "Débito", "Crédito"].includes(paymentMethod)) {
+    throw new Error("Selecione uma forma de pagamento válida.");
+  }
+  if (paymentMethod !== "Crédito" && installments !== 1) {
+    throw new Error("Somente compras no crédito podem ser parceladas.");
+  }
+  if (installments < 1 || installments > 24) {
+    throw new Error("Informe entre 1 e 24 parcelas.");
+  }
+  const { error } = await supabase.rpc("register_inventory_purchase", {
+    p_item_id: itemId,
+    p_quantity: quantity,
+    p_total_cents: Math.round(total * 100),
+    p_purchase_date: purchaseDate,
+    p_payment_method: paymentMethod,
+    p_installments: installments,
+    p_description: text(form, "description") || null,
+  });
+  if (error) throw new Error(error.message || "Não foi possível registrar a compra.");
+  revalidatePath("/estoque");
+  revalidatePath("/financeiro");
+  redirect("/estoque?purchase=registered");
 }
 
 export async function createInventoryMovement(form: FormData) {
@@ -177,6 +217,7 @@ export async function createInventoryMovement(form: FormData) {
   });
   if (error) throw new Error(error.message || "Não foi possível registrar a movimentação.");
   revalidatePath("/estoque");
+  redirect("/estoque?movement=registered");
 }
 
 export async function updateEventStatus(form: FormData) {
