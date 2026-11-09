@@ -1,6 +1,6 @@
 import { CalendarDays, CircleDollarSign, FileCheck2, FileUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { registerEventPayment, uploadSignedEventContract } from "@/actions/operations";
+import { registerEventPayment, uploadSignedEventContract, updateEventStatus } from "@/actions/operations";
 
 const money = (c: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(c / 100);
@@ -86,7 +86,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
               <thead><tr>
                 <th>Data / hora</th><th>Cliente</th><th>Local</th><th>Pacote</th>
                 <th>Valor contratado</th><th>Recebido</th><th>Saldo</th><th>Status financeiro</th>
-                <th>Contrato assinado</th><th>Registrar pagamento</th>
+                <th>Execução do evento</th><th>Contrato assinado</th><th>Registrar pagamento</th>
               </tr></thead>
               <tbody>{rows.map((event) => (
                 <tr key={event.id}>
@@ -108,6 +108,18 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
                   <td>{money(event.received)}<small>{event.payments.length} lançamento(s)</small></td>
                   <td><strong>{money(event.outstanding)}</strong></td>
                   <td><span className={`status-pill status-${(event.payment_status || "A pagar").toLowerCase().replaceAll(" ", "-")}`}>{event.payment_status || "A pagar"}</span></td>
+                  <td>
+                    <form action={updateEventStatus} className="payment-form">
+                      <input type="hidden" name="event_id" value={event.id}/>
+                      <select name="status" defaultValue={event.status} aria-label="Situação do evento">
+                        <option value="Confirmado">Agendado / confirmado</option>
+                        <option value="Realizado">Realizado</option>
+                        <option value="Cancelado">Cancelado</option>
+                      </select>
+                      <button type="submit">Atualizar evento</button>
+                    </form>
+                    {event.status === "Realizado" && <small>Consumo de materiais processado.</small>}
+                  </td>
                   <td>
                     {event.latestSigned ? <div className="signed-contract-state">
                       <span className="signed-contract-received"><FileCheck2 size={13}/> Recebido</span>
