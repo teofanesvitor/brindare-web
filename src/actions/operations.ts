@@ -162,7 +162,7 @@ export async function createInventoryItem(form: FormData) {
 }
 
 export async function createInventoryMovement(form: FormData) {
-  const { user } = await requireAdmin();
+  await requireAdmin();
   const supabase = await createClient();
   const itemId = text(form, "item_id");
   const quantity = number(form, "quantity");
@@ -195,7 +195,7 @@ export async function updateEventStatus(form: FormData) {
 
 
 export async function registerEventPayment(form: FormData) {
-  const { user } = await requireAdmin();
+  await requireAdmin();
   const supabase = await createClient();
   const eventId = text(form, "event_id");
   const amount = number(form, "amount");
