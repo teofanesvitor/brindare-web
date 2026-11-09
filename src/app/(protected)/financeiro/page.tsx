@@ -1,9 +1,10 @@
-import { CalendarClock, CreditCard, Wallet } from "lucide-react";
+import { CalendarClock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { markInventoryInstallmentPaid } from "@/actions/operations";
 
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 const date = (value: string) => new Date(`${value}T12:00:00`).toLocaleDateString("pt-BR");
+type SearchParams = Promise<{ installment?: string }>;
 
 export default async function FinanceiroPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
