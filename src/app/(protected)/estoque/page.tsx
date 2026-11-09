@@ -41,7 +41,7 @@ export default async function EstoquePage({ searchParams }: { searchParams: Sear
           <label className="operation-form-wide">Descrição<input name="description" placeholder="Fornecedor, nota fiscal ou observação"/></label>
           <button className="operation-submit" type="submit">Registrar compra</button>
         </form>
-        <p className="operation-hint">Compras em dinheiro, Pix e débito entram como pagas na data informada. Compras no crédito geram parcelas mensais previstas. A data das parcelas é limitada ao dia 28 para evitar inconsistências entre meses.</p>
+        <p className="operation-hint">Compras em dinheiro, Pix e débito entram como pagas na data informada. Compras no crédito geram parcelas mensais previstas a partir do mês seguinte à compra. O sistema usa o primeiro dia de cada mês como competência para planejamento, sem depender do vencimento real da fatura.</p>
       </section>
 
       <section className="operation-panel"><div className="operation-title"><div><h2><ArrowDownCircle size={17}/> Registrar saída</h2><p>Registre consumo em eventos, perdas ou baixas.</p></div></div>
