@@ -1,0 +1,32 @@
+name: Inventory and cashflow validation
+
+on:
+  push:
+    branches:
+      - feat/inventory-purchases-cashflow
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: TypeScript validation
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: ESLint
+        run: npm run lint
+      - name: Build for Cloudflare Workers
+        run: npx opennextjs-cloudflare build
