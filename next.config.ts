@@ -10,9 +10,6 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "15mb",
     },
   },
-  outputFileTracingIncludes: {
-    "/*": ["./src/templates/contract-template.docx"],
-  },
 };
 
 initOpenNextCloudflareForDev();
