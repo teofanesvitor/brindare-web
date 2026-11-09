@@ -10,6 +10,34 @@ A branch `deploy/cloudflare-free-test` prepara o deploy do sistema existente usa
 - O workflow de compatibilidade usa apenas permissões GitHub de leitura e `npm ci` com o lockfile versionado.
 - Nenhuma credencial real deve ser adicionada ao repositório ou aos logs de CI.
 
+## Configuração obrigatória no Cloudflare antes do primeiro deploy
+
+No painel Cloudflare, abra **Workers & Pages** e configure no Worker `brindare-web-test`:
+
+**Variables (texto, não sensíveis):**
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_APP_URL` = `https://brindare-web-test.brindare-maceio.workers.dev`
+
+**Secrets (sensíveis):**
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+Cadastre a service role como **Secret**, nunca como variável de texto. O workflow usa `--keep-vars` para preservar as variáveis e secrets existentes no painel durante a publicação.
+
+No GitHub, a branch de teste deve conter estes Repository Secrets:
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+Os valores públicos do Supabase são usados durante o build para resolver as referências `NEXT_PUBLIC_*`. A service role não é passada ao build: ela é lida em runtime pelo servidor.
+
+## Publicação manual
+
+O workflow **Deploy Brindare test to Cloudflare** só pode ser iniciado manualmente em **Actions**, na branch `deploy/cloudflare-free-test`. É necessário marcar a confirmação `confirm_deploy`. O workflow executa typecheck, testes, lint e build antes de publicar. Pushes e o workflow de compatibilidade não fazem deploy.
+
+A URL configurada para este Worker de teste é `https://brindare-web-test.brindare-maceio.workers.dev`. Confirme que o subdomínio e o nome do Worker estão disponíveis na conta antes de executar o workflow.
+
 ## Verificações
 
 ```bash
