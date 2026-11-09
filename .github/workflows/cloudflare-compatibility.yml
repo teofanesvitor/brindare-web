@@ -1,6 +1,9 @@
 name: Cloudflare compatibility test
 
 on:
+  push:
+    branches:
+      - deploy/cloudflare-free-test
   workflow_dispatch:
 
 permissions:
