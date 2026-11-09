@@ -9,7 +9,10 @@ security definer
 set search_path = public
 as $$
 declare
-  v_item record;
+  v_request record;
+  v_item_id uuid;
+  v_item_type text;
+  v_item_active boolean;
   v_quantity numeric(12,2);
   v_balance numeric(12,2);
   v_item_name text;
@@ -26,7 +29,7 @@ begin
     raise exception 'Acesso não autorizado para concluir o evento.';
   end if;
 
-  for v_item in
+  for v_request in
     select *
     from (values
       ('Fogos', (new.fireworks * 2)::numeric),
@@ -35,23 +38,26 @@ begin
     ) as requested(item_name, quantity)
     where requested.quantity > 0
   loop
-    v_item_name := v_item.item_name;
-    v_quantity := v_item.quantity;
+    v_item_name := v_request.item_name;
+    v_quantity := v_request.quantity;
+    v_item_id := null;
+    v_item_type := null;
+    v_item_active := false;
 
-    select id, name, item_type, active
-      into v_item
+    select id, item_type, active
+      into v_item_id, v_item_type, v_item_active
     from public.inventory_items
     where lower(name) = lower(v_item_name)
     for update;
 
-    if not found or not v_item.active or v_item.item_type <> 'consumivel' then
+    if not found or not v_item_active or v_item_type <> 'consumivel' then
       raise exception 'O item consumível "%" não está cadastrado como ativo no estoque.', v_item_name;
     end if;
 
     -- Evita baixa duplicada caso o status do evento seja alterado e depois restaurado.
     if exists (
       select 1 from public.inventory_movements
-      where event_id = new.id and item_id = v_item.id and movement_type = 'saida'
+      where event_id = new.id and item_id = v_item_id and movement_type = 'saida'
     ) then
       continue;
     end if;
@@ -63,7 +69,7 @@ begin
     end), 0)
     into v_balance
     from public.inventory_movements
-    where item_id = v_item.id;
+    where item_id = v_item_id;
 
     if v_quantity > v_balance then
       raise exception 'Estoque insuficiente de %. Disponível: %, necessário para o evento: %.',
@@ -73,7 +79,7 @@ begin
     insert into public.inventory_movements (
       item_id, movement_type, quantity, event_id, description, created_by
     ) values (
-      v_item.id, 'saida', v_quantity, new.id,
+      v_item_id, 'saida', v_quantity, new.id,
       'Consumo automático do evento: ' || new.client_name || ' — ' || to_char(new.event_date, 'DD/MM/YYYY'),
       new.created_by
     );
