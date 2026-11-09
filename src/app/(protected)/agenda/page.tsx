@@ -6,7 +6,7 @@ const money = (c: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(c / 100);
 const date = (value: string) => new Date(`${value}T12:00:00`).toLocaleDateString("pt-BR");
 
-type SearchParams = Promise<{ status?: string; periodo?: string }>;
+type SearchParams = Promise<{ status?: string; periodo?: string; payment?: string; signed?: string }>;
 
 export default async function AgendaPage({ searchParams }: { searchParams: SearchParams }) {
   const filters = await searchParams;
@@ -76,6 +76,8 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
           </form>
         </div>
 
+        {filters.payment === "registered" && <p className="operation-success">Recebimento registrado com sucesso.</p>}
+        {filters.signed === "uploaded" && <p className="operation-success">Contrato assinado enviado com sucesso.</p>}
         {error ? <p className="operation-empty">
           Não foi possível carregar a agenda. Verifique se as migrations de agenda, pagamentos e contratos assinados foram aplicadas.
         </p> : !rows.length ? <p className="operation-empty">Nenhum evento encontrado para os filtros selecionados.</p> : (
@@ -119,7 +121,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
                       <form action={uploadSignedEventContract} className="signed-contract-form">
                         <input type="hidden" name="event_id" value={event.id}/>
                         <label>Arquivo assinado<input type="file" name="signed_contract" accept=".pdf,.docx,.jpg,.jpeg,.png,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png" required/></label>
-                        <small>Envie após conferir as assinaturas das duas partes. PDF, DOCX, JPG ou PNG · até 12 MB. Versões anteriores serão preservadas.</small>
+                        <small>Envie após conferir as assinaturas das duas partes. PDF, DOCX, JPG ou PNG · até 10 MB. Versões anteriores serão preservadas.</small>
                         <button type="submit">Enviar arquivo</button>
                       </form>
                     </details>
