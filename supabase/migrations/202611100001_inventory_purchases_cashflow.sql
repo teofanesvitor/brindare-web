@@ -103,7 +103,6 @@ declare
   v_installment_cents bigint;
   v_remainder bigint;
   v_due_date date;
-  v_purchase_day integer;
 begin
   if not public.is_admin() then
     raise exception 'Acesso não autorizado.';
@@ -150,12 +149,12 @@ begin
 
   v_installment_cents := p_total_cents / p_installments;
   v_remainder := p_total_cents % p_installments;
-  v_purchase_day := least(extract(day from p_purchase_date)::integer, 28);
 
   for v_index in 1..p_installments loop
+    -- Competência financeira: a primeira parcela entra no mês seguinte à compra.
+    -- Cada parcela é alocada no primeiro dia do respectivo mês, sem depender da fatura real.
     v_due_date := (date_trunc('month', p_purchase_date)::date
-      + make_interval(months => v_index - 1)
-      + (v_purchase_day - 1) * interval '1 day')::date;
+      + make_interval(months => v_index))::date;
 
     insert into public.inventory_purchase_installments (
       purchase_id, installment_number, amount_cents, due_date, status
