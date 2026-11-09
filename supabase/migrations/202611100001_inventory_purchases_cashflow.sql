@@ -160,3 +160,32 @@ $$;
 
 grant execute on function public.register_inventory_purchase(uuid,numeric,bigint,date,text,integer,text)
   to authenticated;
+
+alter table public.inventory_purchase_installments
+  add column if not exists paid_at date;
+
+create policy "Administradores atualizam parcelas de compras"
+  on public.inventory_purchase_installments for update to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
+
+create or replace function public.mark_inventory_purchase_installment_paid(p_installment_id uuid)
+returns void
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'Acesso não autorizado.';
+  end if;
+  update public.inventory_purchase_installments
+  set status = 'paga', paid_at = current_date
+  where id = p_installment_id and status = 'prevista';
+  if not found then
+    raise exception 'Parcela não encontrada ou já quitada.';
+  end if;
+end;
+$$;
+
+grant execute on function public.mark_inventory_purchase_installment_paid(uuid) to authenticated;
