@@ -70,6 +70,19 @@ create policy "Administradores consultam parcelas de compras"
   on public.inventory_purchase_installments for select to authenticated
   using (public.is_admin());
 
+create policy "Administradores registram compras de estoque"
+  on public.inventory_purchases for insert to authenticated
+  with check (public.is_admin() and created_by = auth.uid());
+create policy "Administradores registram parcelas de compras"
+  on public.inventory_purchase_installments for insert to authenticated
+  with check (
+    public.is_admin()
+    and exists (
+      select 1 from public.inventory_purchases p
+      where p.id = purchase_id and p.created_by = auth.uid()
+    )
+  );
+
 create or replace function public.register_inventory_purchase(
   p_item_id uuid,
   p_quantity numeric,
