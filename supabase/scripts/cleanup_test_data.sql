@@ -1,41 +1,50 @@
 -- LIMPEZA DE DADOS DE TESTE — Brindare Web
 -- Executar manualmente no Supabase SQL Editor, após exportar um backup.
+-- Compatível com bancos nos quais a migration de compras do estoque ainda não foi aplicada.
 -- Preserva: auth.users, public.profiles, configurações e catálogo public.inventory_items.
--- Remove: eventos, pagamentos, clientes, pré-cadastros, contratos, histórico de
--- contratos assinados, compras de estoque, parcelas e movimentações de estoque.
--- Não remove arquivos do Storage; esses devem ser tratados separadamente.
+-- Remove dados operacionais existentes. Tabelas opcionais são verificadas antes do DELETE.
 
 begin;
 
--- Filhos de eventos e contratos (FKs com ON DELETE RESTRICT).
-delete from public.event_signed_contracts;
-delete from public.event_payments;
-
--- Movimentações e compras são dados operacionais de teste; o catálogo fica intacto.
-delete from public.inventory_movements;
-delete from public.inventory_purchase_installments;
-delete from public.inventory_purchases;
-
--- Eventos podem referenciar contratos; apagar eventos primeiro.
-delete from public.events;
-delete from public.contracts;
-
--- Pré-cadastros referenciam clientes com ON DELETE SET NULL.
-delete from public.client_intakes;
-delete from public.clients;
+do $cleanup$
+declare
+  v_table text;
+  v_tables text[] := array[
+    'public.event_signed_contracts',
+    'public.event_payments',
+    'public.inventory_movements',
+    'public.inventory_purchase_installments',
+    'public.inventory_purchases',
+    'public.events',
+    'public.contracts',
+    'public.client_intakes',
+    'public.clients'
+  ];
+begin
+  foreach v_table in array v_tables loop
+    if to_regclass(v_table) is not null then
+      execute format('delete from %s', v_table);
+      raise notice 'Limpeza concluída: %', v_table;
+    else
+      raise notice 'Tabela não existe, ignorada: %', v_table;
+    end if;
+  end loop;
+end
+$cleanup$;
 
 commit;
 
--- Conferência pós-limpeza: todos os resultados abaixo devem ser zero.
-select 'events' as table_name, count(*) as remaining from public.events
-union all select 'event_payments', count(*) from public.event_payments
-union all select 'event_signed_contracts', count(*) from public.event_signed_contracts
-union all select 'contracts', count(*) from public.contracts
-union all select 'clients', count(*) from public.clients
-union all select 'client_intakes', count(*) from public.client_intakes
-union all select 'inventory_movements', count(*) from public.inventory_movements
-union all select 'inventory_purchases', count(*) from public.inventory_purchases
-union all select 'inventory_purchase_installments', count(*) from public.inventory_purchase_installments;
+-- Conferência pós-limpeza. Tabelas inexistentes aparecem como NULL, sem interromper a consulta.
+select 'events' as table_name, (select count(*) from public.events) as remaining
+union all select 'event_payments', (select count(*) from public.event_payments)
+union all select 'event_signed_contracts', (select count(*) from public.event_signed_contracts)
+union all select 'contracts', (select count(*) from public.contracts)
+union all select 'clients', (select count(*) from public.clients)
+union all select 'client_intakes', (select count(*) from public.client_intakes)
+union all select 'inventory_movements', (select count(*) from public.inventory_movements);
 
--- O catálogo é preservado; confira a quantidade de itens cadastrados.
+select
+  to_regclass('public.inventory_purchases') as inventory_purchases_table,
+  to_regclass('public.inventory_purchase_installments') as inventory_purchase_installments_table;
+
 select count(*) as inventory_items_preserved from public.inventory_items;
