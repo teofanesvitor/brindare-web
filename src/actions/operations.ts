@@ -169,17 +169,13 @@ export async function createInventoryMovement(form: FormData) {
   const movementType = text(form, "movement_type");
   if (!itemId || quantity <= 0) throw new Error("Selecione um item e informe uma quantidade maior que zero.");
   if (movementType !== "entrada" && movementType !== "saida") throw new Error("Tipo de movimentação inválido.");
-  if (movementType === "saida") {
-    const { data: history, error: historyError } = await supabase.from("inventory_movements").select("movement_type,quantity").eq("item_id", itemId);
-    if (historyError) throw new Error(historyError.message);
-    const balance = (history || []).reduce((sum, row) => sum + (row.movement_type === "entrada" ? Number(row.quantity) : -Number(row.quantity)), 0);
-    if (quantity > balance) throw new Error(`Saldo insuficiente. Disponível: ${balance}.`);
-  }
-  const { error } = await supabase.from("inventory_movements").insert({
-    item_id: itemId, movement_type: movementType,
-    quantity, description: text(form, "description") || null, created_by: user.id,
+  const { error } = await supabase.rpc("register_inventory_movement", {
+    p_item_id: itemId,
+    p_movement_type: movementType,
+    p_quantity: quantity,
+    p_description: text(form, "description") || null,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(error.message || "Não foi possível registrar a movimentação.");
   revalidatePath("/estoque");
 }
 
@@ -248,8 +244,8 @@ export async function uploadSignedEventContract(form: FormData) {
   if (!extension) {
     throw new Error("Formato não permitido. Envie PDF, DOCX, JPG ou PNG.");
   }
-  if (file.size > 12 * 1024 * 1024) {
-    throw new Error("O arquivo deve ter no máximo 12 MB.");
+  if (file.size > 10 * 1024 * 1024) {
+    throw new Error("O arquivo deve ter no máximo 10 MB.");
   }
 
   const { data: event, error: eventError } = await supabase
