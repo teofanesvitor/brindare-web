@@ -1,9 +1,9 @@
-import { Package, ArrowDownCircle, ArrowUpCircle, AlertTriangle, ShoppingCart } from "lucide-react";
+import { Package, ArrowUpCircle, AlertTriangle, ShoppingCart } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { createInventoryItem, createInventoryMovement, createInventoryPurchase } from "@/actions/operations";
+import { createInventoryItem, createInventoryPurchase } from "@/actions/operations";
 
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
-type SearchParams = Promise<{ purchase?: string; movement?: string }>;
+type SearchParams = Promise<{ purchase?: string }>;
 
 export default async function EstoquePage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
@@ -22,7 +22,6 @@ export default async function EstoquePage({ searchParams }: { searchParams: Sear
     <div className="page-heading"><div><div className="eyebrow">Operação</div><h1>Estoque</h1><p>Controle materiais reutilizáveis, consumíveis, compras e consumo.</p></div></div>
 
     {params.purchase === "registered" && <p className="operation-success">Compra registrada. A entrada foi adicionada ao estoque e as parcelas foram lançadas no fluxo de caixa.</p>}
-    {params.movement === "registered" && <p className="operation-success">Saída registrada com sucesso.</p>}
 
     <div className="inventory-section-label">Materiais reutilizáveis</div>
     <div className="inventory-grid">{stock.filter(i => i.item_type === "reutilizavel").map(item=><article className="inventory-card" key={item.id}><div className="inventory-card-top"><span>{item.name}</span>{item.critical ? <AlertTriangle size={17} color="#b45b32"/> : <Package size={17} color="#a88618"/>}</div><strong>{item.quantity.toLocaleString("pt-BR")} <small>{item.unit}</small></strong><p>Mínimo: {Number(item.minimum_quantity).toLocaleString("pt-BR")} {item.unit}</p>{item.critical && <span className="inventory-warning">Estoque no mínimo ou abaixo</span>}</article>)}</div>
@@ -44,16 +43,7 @@ export default async function EstoquePage({ searchParams }: { searchParams: Sear
         <p className="operation-hint">Compras em dinheiro, Pix e débito entram como pagas na data informada. Compras no crédito geram parcelas mensais previstas a partir do mês seguinte à compra. O sistema usa o primeiro dia de cada mês como competência para planejamento, sem depender do vencimento real da fatura.</p>
       </section>
 
-      <section className="operation-panel"><div className="operation-title"><div><h2><ArrowDownCircle size={17}/> Registrar saída</h2><p>Registre consumo em eventos, perdas ou baixas.</p></div></div>
-        <form action={createInventoryMovement} className="operation-form">
-          <input type="hidden" name="movement_type" value="saida"/>
-          <label className="operation-form-wide">Item<select name="item_id" required defaultValue=""><option value="" disabled>Selecione</option>{(items??[]).map(i=><option value={i.id} key={i.id}>{i.name}</option>)}</select></label>
-          <label>Quantidade<input name="quantity" type="number" min="0.01" step="0.01" required/></label>
-          <label>Descrição<input name="description" placeholder="Evento, consumo, perda..."/></label>
-          <button className="operation-submit" type="submit">Registrar saída</button>
-        </form>
-        <div className="inventory-divider"/>
-        <div className="operation-title"><div><h2><Package size={17}/> Cadastrar item</h2><p>Defina se o material retorna ao estoque ou é consumido.</p></div></div>
+      <section className="operation-panel"><div className="operation-title"><div><h2><Package size={17}/> Cadastrar item</h2><p>Defina se o material retorna ao estoque ou é consumido.</p></div></div>
         <form action={createInventoryItem} className="operation-form">
           <label>Produto<input name="name" required placeholder="Ex.: Suporte de mesa"/></label>
           <label>Tipo<select name="item_type" defaultValue="consumivel"><option value="reutilizavel">Reutilizável</option><option value="consumivel">Consumível</option></select></label>
@@ -61,10 +51,11 @@ export default async function EstoquePage({ searchParams }: { searchParams: Sear
           <label>Estoque mínimo<input name="minimum_quantity" type="number" min="0" step="0.01" defaultValue="0"/></label>
           <button className="operation-submit" type="submit">Adicionar item</button>
         </form>
+        <p className="operation-hint">As baixas de Fogos, Sparkles e Champanhe são calculadas automaticamente a partir dos itens informados na Agenda quando o evento é marcado como Realizado. Taças e mesas são reutilizáveis e não têm baixa automática.</p>
       </section>
     </div>
 
-    <section className="operation-panel"><div className="operation-title"><div><h2><ArrowUpCircle size={17}/> Movimentações recentes</h2><p>Últimas entradas de compra e saídas de materiais.</p></div></div>
+    <section className="operation-panel"><div className="operation-title"><div><h2><ArrowUpCircle size={17}/> Movimentações recentes</h2><p>Entradas por compras e baixas automáticas após eventos realizados.</p></div></div>
       {error ? <p className="operation-empty">Não foi possível carregar o estoque. Verifique a migration.</p> : !movements?.length ? <p className="operation-empty">Nenhuma movimentação registrada.</p> : <div className="operation-table-wrap"><table className="operation-table"><thead><tr><th>Data</th><th>Produto</th><th>Tipo</th><th>Quantidade</th><th>Descrição</th></tr></thead><tbody>{movements.slice(0,30).map(m=><tr key={m.id}><td>{new Date(m.created_at).toLocaleString("pt-BR")}</td><td>{(m.inventory_items as unknown as {name:string})?.name}</td><td>{m.movement_type === "entrada" ? "Compra / entrada" : m.movement_type === "saida" ? "Saída" : "Ajuste"}</td><td>{m.quantity}</td><td>{m.description || "—"}</td></tr>)}</tbody></table></div>}
     </section>
   </main>;
