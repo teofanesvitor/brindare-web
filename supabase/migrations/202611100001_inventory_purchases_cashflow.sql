@@ -153,8 +153,13 @@ begin
   for v_index in 1..p_installments loop
     -- Competência financeira: a primeira parcela entra no mês seguinte à compra.
     -- Cada parcela é alocada no primeiro dia do respectivo mês, sem depender da fatura real.
-    v_due_date := (date_trunc('month', p_purchase_date)::date
-      + make_interval(months => v_index))::date;
+    if p_payment_method = 'Crédito' then
+      v_due_date := (date_trunc('month', p_purchase_date)::date
+        + make_interval(months => v_index))::date;
+    else
+      -- À vista: a despesa pertence ao mês da compra e já nasce quitada.
+      v_due_date := p_purchase_date;
+    end if;
 
     insert into public.inventory_purchase_installments (
       purchase_id, installment_number, amount_cents, due_date, status
