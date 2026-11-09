@@ -206,7 +206,7 @@ export async function registerEventPayment(form: FormData) {
   if (!eventId || !Number.isFinite(amount) || amount <= 0) {
     throw new Error("Selecione o evento e informe um valor válido.");
   }
-  if (paidAt && !/^\\d{4}-\\d{2}-\\d{2}$/.test(paidAt)) {
+  if (paidAt && !/^\d{4}-\d{2}-\d{2}$/.test(paidAt)) {
     throw new Error("Informe uma data de pagamento válida.");
   }
 
@@ -221,6 +221,7 @@ export async function registerEventPayment(form: FormData) {
 
   revalidatePath("/agenda");
   revalidatePath("/dashboard");
+  redirect("/agenda?payment=registered");
 }
 
 
@@ -252,7 +253,7 @@ export async function uploadSignedEventContract(form: FormData) {
     .from("events").select("id").eq("id", eventId).maybeSingle();
   if (eventError || !event) throw new Error("Evento não encontrado ou sem permissão.");
 
-  const safeName = file.name.replace(/[^\\p{L}\\p{N}._-]/gu, "_").slice(-100) || `contrato-assinado.${extension}`;
+  const safeName = file.name.replace(/[^\p{L}\p{N}._-]/gu, "_").slice(-100) || `contrato-assinado.${extension}`;
   const storagePath = `signed/${eventId}/${crypto.randomUUID()}.${extension}`;
   const { error: uploadError } = await admin.storage.from("contracts").upload(
     storagePath, await file.arrayBuffer(),
@@ -275,4 +276,5 @@ export async function uploadSignedEventContract(form: FormData) {
 
   revalidatePath("/agenda");
   revalidatePath("/dashboard");
+  redirect("/agenda?signed=uploaded");
 }
