@@ -29,10 +29,10 @@ function validCpf(value: string) {
 }
 
 function formatDateBr(value: string) {
-  return /^\\d{4}-\\d{2}-\\d{2}$/.test(value) ? `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)}` : value;
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)}` : value;
 }
 function dateBrToIso(value: string) {
-  const match = /^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/.exec(value);
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
   if (!match) return "";
   const [, day, month, year] = match;
   const date = new Date(Number(year), Number(month) - 1, Number(day));
@@ -45,9 +45,9 @@ function DateTimeInput({ label, name, type, required = false, defaultValue = "" 
   const [value, setValue] = useState(() => type === "date" ? formatDateBr(defaultValue) : defaultValue);
   const isDate = type === "date";
   const isoDate = isDate ? dateBrToIso(value) : "";
-  const validTime = !isDate && /^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(value);
+  const validTime = !isDate && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
   function update(raw: string) {
-    const digits = raw.replace(/\\D/g, "").slice(0, isDate ? 8 : 4);
+    const digits = raw.replace(/\D/g, "").slice(0, isDate ? 8 : 4);
     setValue(isDate
       ? digits.length > 4 ? `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
         : digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits
@@ -55,7 +55,7 @@ function DateTimeInput({ label, name, type, required = false, defaultValue = "" 
   }
   return <label>{label}<input type="text" inputMode="numeric" value={value} onChange={event => update(event.target.value)}
     placeholder={isDate ? "DD/MM/AAAA" : "HH:MM"} maxLength={isDate ? 10 : 5} required={required}
-    pattern={isDate ? "\\d{2}/\\d{2}/\\d{4}" : "(?:[01]\\d|2[0-3]):[0-5]\\d"}
+    pattern={isDate ? "\d{2}/\d{2}/\d{4}" : "(?:[01]\d|2[0-3]):[0-5]\d"}
     title={isDate ? "Use o formato DD/MM/AAAA." : "Use o formato 24 horas HH:MM."}/>
     <input type="hidden" name={name} value={isDate ? isoDate : validTime ? value : ""}/>
   </label>;
