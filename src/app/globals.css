@@ -125,3 +125,29 @@
   .mobile-navigation-divider{height:1px;background:var(--line);margin:8px 2px}
   .mobile-navigation-disabled{color:#aaa59a}
 }
+
+
+/* Gestão financeira: indicadores, histórico mensal e planejamento. */
+.cashflow-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.cashflow-kpis article{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:7px;min-width:0}
+.cashflow-kpis article span{font-size:11px;color:var(--muted);font-weight:700}
+.cashflow-kpis article strong{font-size:clamp(19px,2vw,25px);letter-spacing:-.7px;overflow-wrap:anywhere}
+.cashflow-kpis article small{font-size:10px;color:var(--muted);line-height:1.45}
+.cashflow-chart-legend{display:flex;gap:18px;flex-wrap:wrap;margin:0 0 10px;color:var(--muted);font-size:11px}
+.cashflow-chart-legend span{display:inline-flex;align-items:center;gap:6px}
+.cashflow-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.cashflow-dot.revenue{background:#b89a32}.cashflow-dot.expense{background:#9b8174}
+.cashflow-chart{height:175px;display:flex;align-items:stretch;gap:9px;padding:12px 4px 0;border-bottom:1px solid var(--line);margin-bottom:16px;overflow-x:auto}
+.cashflow-chart-month{flex:1;min-width:35px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:7px}
+.cashflow-bars{height:140px;width:100%;display:flex;align-items:flex-end;justify-content:center;gap:3px}
+.cashflow-bar{width:min(17px,38%);min-height:0;border-radius:4px 4px 0 0}
+.cashflow-bar.revenue{background:#c4a33c}.cashflow-bar.expense{background:#a58b7d}
+.cashflow-chart-month small{font-size:9px;color:var(--muted);white-space:nowrap}
+.cashflow-history-table{min-width:850px}
+.cashflow-positive{color:#347044}.cashflow-negative{color:#a33b2b}
+.cashflow-pay-form{display:flex;align-items:center;gap:6px;min-width:220px}
+.cashflow-pay-form input{height:32px;min-width:120px;border:1px solid var(--line);border-radius:6px;padding:0 7px;font-size:10px}
+.cashflow-entry-columns{align-items:stretch}
+.cashflow-entry-columns .operation-panel{margin:0}
+@media(max-width:900px){.cashflow-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.cashflow-kpis{grid-template-columns:1fr 1fr;gap:8px}.cashflow-kpis article{padding:12px}.cashflow-kpis article strong{font-size:18px}.cashflow-chart{height:155px}.cashflow-bars{height:120px}.cashflow-pay-form{align-items:flex-start;flex-direction:column}.cashflow-entry-columns{grid-template-columns:1fr}}
