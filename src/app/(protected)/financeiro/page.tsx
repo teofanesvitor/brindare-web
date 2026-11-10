@@ -21,6 +21,11 @@ const addMonths = (key: string, amount: number) => {
 };
 type SearchParams = Promise<{ installment?: string; expense?: string; settings?: string }>;
 
+type ExpenseRow = { id: string; description: string; category: string; amount_cents: number; due_date: string; status: string; paid_at: string | null; payment_method: string | null };
+type InstallmentRow = { id: string; installment_number: number; amount_cents: number; due_date: string; status: string; paid_at: string | null; inventory_purchases: { installments: number; inventory_items: { name: string } | null } | null };
+type EventPaymentRow = { id: string; amount_cents: number; paid_at: string; payment_method: string | null; notes: string | null; events: { client_name: string } | null };
+
+
 export default async function FinanceiroPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const supabase = await createClient();
@@ -40,6 +45,9 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
   const monthlyRows = (monthlyResult.data ?? []) as {
     month_start: string; revenue_cents: number; paid_expenses_cents: number; planned_expenses_cents: number;
   }[];
+  const expenses = (expensesResult.data ?? []) as ExpenseRow[];
+  const installments = (installmentsResult.data ?? []) as InstallmentRow[];
+  const payments = (paymentsResult.data ?? []) as EventPaymentRow[];
   const settings = settingsResult.data as { opening_balance_cents: number; opening_balance_date: string } | null;
   const openingBalance = Number(settings?.opening_balance_cents ?? 0);
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Maceio" });
@@ -75,16 +83,16 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
   const chartRows = months.filter(row => row.key <= currentMonth).slice(-12);
   const chartMax = Math.max(1, ...chartRows.flatMap(row => [row.revenue, row.paidExpenses]));
   const recent = [
-    ...(paymentsResult.data ?? []).map((row: any) => ({
+    ...payments.map(row => ({
       id: row.id, date: row.paid_at, kind: "Receita", detail: row.events?.client_name ?? "Pagamento de evento",
       category: row.payment_method ?? "Evento", amount: Number(row.amount_cents), status: "Recebido",
     })),
-    ...(installmentsResult.data ?? []).map((row: any) => ({
+    ...installments.map(row => ({
       id: row.id, date: row.paid_at ?? row.due_date, kind: "Despesa", detail: row.inventory_purchases?.inventory_items?.name ?? "Compra de estoque",
       category: `Estoque · ${row.installment_number}/${row.inventory_purchases?.installments ?? 1}`,
       amount: Number(row.amount_cents), status: row.status === "paga" ? "Pago" : "Previsto",
     })),
-    ...(expensesResult.data ?? []).map((row: any) => ({
+    ...expenses.map(row => ({
       id: row.id, date: row.paid_at ?? row.due_date, kind: "Despesa", detail: row.description,
       category: row.category, amount: Number(row.amount_cents), status: row.status === "paga" ? "Pago" : "Previsto",
     })),
@@ -165,15 +173,15 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
 
     <section className="operation-panel">
       <div className="operation-title"><div><h2>Despesas operacionais pendentes</h2><p>Contas cadastradas fora das compras de estoque.</p></div></div>
-      {expenseError ? <p className="operation-empty">Não foi possível carregar as despesas. Aplique a migration financeira.</p> : !(expensesResult.data ?? []).filter((row: any) => row.status === "prevista").length ? <p className="operation-empty">Nenhuma despesa operacional pendente.</p> : <div className="operation-table-wrap"><table className="operation-table"><thead><tr><th>Vencimento</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Situação</th><th>Ação</th></tr></thead><tbody>
-        {(expensesResult.data ?? []).filter((row: any) => row.status === "prevista").map((row: any) => <tr key={row.id}><td>{date(row.due_date)}</td><td>{row.description}</td><td>{row.category}</td><td><strong>{money(Number(row.amount_cents))}</strong></td><td><span className={`status-pill ${row.due_date < today ? "status-cancelado" : "status-a-pagar"}`}>{row.due_date < today ? "Vencida" : "A pagar"}</span></td><td><form action={markFinancialExpensePaid} className="cashflow-pay-form"><input type="hidden" name="expense_id" value={row.id}/><input name="paid_at" type="date" defaultValue={today} aria-label="Data de pagamento"/><button className="operation-link" type="submit">Marcar paga</button></form></td></tr>)}
+      {expenseError ? <p className="operation-empty">Não foi possível carregar as despesas. Aplique a migration financeira.</p> : !expenses.filter(row => row.status === "prevista").length ? <p className="operation-empty">Nenhuma despesa operacional pendente.</p> : <div className="operation-table-wrap"><table className="operation-table"><thead><tr><th>Vencimento</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Situação</th><th>Ação</th></tr></thead><tbody>
+        {expenses.filter(row => row.status === "prevista").map(row => <tr key={row.id}><td>{date(row.due_date)}</td><td>{row.description}</td><td>{row.category}</td><td><strong>{money(Number(row.amount_cents))}</strong></td><td><span className={`status-pill ${row.due_date < today ? "status-cancelado" : "status-a-pagar"}`}>{row.due_date < today ? "Vencida" : "A pagar"}</span></td><td><form action={markFinancialExpensePaid} className="cashflow-pay-form"><input type="hidden" name="expense_id" value={row.id}/><input name="paid_at" type="date" defaultValue={today} aria-label="Data de pagamento"/><button className="operation-link" type="submit">Marcar paga</button></form></td></tr>)}
       </tbody></table></div>}
     </section>
 
     <section className="operation-panel">
       <div className="operation-title"><div><h2>Parcelas de estoque pendentes</h2><p>Compras parceladas que ainda precisam ser quitadas.</p></div></div>
-      {!(installmentsResult.data ?? []).filter((row: any) => row.status === "prevista").length ? <p className="operation-empty">Nenhuma parcela de estoque pendente.</p> : <div className="operation-table-wrap"><table className="operation-table"><thead><tr><th>Competência</th><th>Produto</th><th>Parcela</th><th>Valor</th><th>Situação</th><th>Ação</th></tr></thead><tbody>
-        {(installmentsResult.data ?? []).filter((row: any) => row.status === "prevista").map((row: any) => <tr key={row.id}><td>{monthLabel(monthKey(row.due_date))}</td><td>{row.inventory_purchases?.inventory_items?.name ?? "Compra de estoque"}</td><td>{row.installment_number}/{row.inventory_purchases?.installments ?? 1}</td><td><strong>{money(Number(row.amount_cents))}</strong></td><td><span className="status-pill status-a-pagar">{row.due_date < today ? "Vencida" : "A reservar"}</span></td><td><form action={markInventoryInstallmentPaid}><input type="hidden" name="installment_id" value={row.id}/><button className="operation-link" type="submit">Marcar como paga</button></form></td></tr>)}
+      {!installments.filter(row => row.status === "prevista").length ? <p className="operation-empty">Nenhuma parcela de estoque pendente.</p> : <div className="operation-table-wrap"><table className="operation-table"><thead><tr><th>Competência</th><th>Produto</th><th>Parcela</th><th>Valor</th><th>Situação</th><th>Ação</th></tr></thead><tbody>
+        {installments.filter(row => row.status === "prevista").map(row => <tr key={row.id}><td>{monthLabel(monthKey(row.due_date))}</td><td>{row.inventory_purchases?.inventory_items?.name ?? "Compra de estoque"}</td><td>{row.installment_number}/{row.inventory_purchases?.installments ?? 1}</td><td><strong>{money(Number(row.amount_cents))}</strong></td><td><span className="status-pill status-a-pagar">{row.due_date < today ? "Vencida" : "A reservar"}</span></td><td><form action={markInventoryInstallmentPaid}><input type="hidden" name="installment_id" value={row.id}/><button className="operation-link" type="submit">Marcar como paga</button></form></td></tr>)}
       </tbody></table></div>}
     </section>
     <section className="operation-panel">
