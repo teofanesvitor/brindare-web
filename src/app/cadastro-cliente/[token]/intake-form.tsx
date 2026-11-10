@@ -28,6 +28,39 @@ function validCpf(value: string) {
   return digit(cpf.slice(0, 9), 10) === Number(cpf[9]) && digit(cpf.slice(0, 10), 11) === Number(cpf[10]);
 }
 
+function formatDateBr(value: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)}` : value;
+}
+function dateBrToIso(value: string) {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
+  if (!match) return "";
+  const [, day, month, year] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  return date.getFullYear() === Number(year) && date.getMonth() === Number(month) - 1 && date.getDate() === Number(day)
+    ? `${year}-${month}-${day}` : "";
+}
+function DateTimeInput({ label, name, type, required = false, defaultValue = "" }: {
+  label: string; name: string; type: "date" | "time"; required?: boolean; defaultValue?: string;
+}) {
+  const [value, setValue] = useState(() => type === "date" ? formatDateBr(defaultValue) : defaultValue);
+  const isDate = type === "date";
+  const isoDate = isDate ? dateBrToIso(value) : "";
+  const validTime = !isDate && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
+  function update(raw: string) {
+    const digits = raw.replace(/\D/g, "").slice(0, isDate ? 8 : 4);
+    setValue(isDate
+      ? digits.length > 4 ? `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
+        : digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits
+      : digits.length > 2 ? `${digits.slice(0, 2)}:${digits.slice(2)}` : digits);
+  }
+  return <label>{label}<input type="text" inputMode="numeric" value={value} onChange={event => update(event.target.value)}
+    placeholder={isDate ? "DD/MM/AAAA" : "HH:MM"} maxLength={isDate ? 10 : 5} required={required}
+    pattern={isDate ? "\d{2}/\d{2}/\d{4}" : "(?:[01]\d|2[0-3]):[0-5]\d"}
+    title={isDate ? "Use o formato DD/MM/AAAA." : "Use o formato 24 horas HH:MM."}/>
+    <input type="hidden" name={name} value={isDate ? isoDate : validTime ? value : ""}/>
+  </label>;
+}
+
 function capitalizeWords(value: string) {
   return value.toLocaleLowerCase("pt-BR").replace(/(^|\s|[-'])\p{L}/gu, (match) => match.toLocaleUpperCase("pt-BR"));
 }
@@ -59,9 +92,9 @@ export function IntakeForm({ token, defaults = {} }: { token: string; defaults?:
     <label className="full-width">Endereço *<input name="address" required autoComplete="street-address" defaultValue={defaults.address || ""} onBlur={capitalize} placeholder="Rua, número e complemento"/></label>
     <label>Bairro<input name="neighborhood" defaultValue={defaults.neighborhood || ""} onBlur={capitalize}/></label>
     <label>Município<input name="city" defaultValue={defaults.city || "Maceió"} onBlur={capitalize}/></label>
-    <label>Data do evento *<input name="event_date" type="date" required defaultValue={defaults.event_date || ""}/></label>
-    <label>Horário do evento *<input name="event_time" type="time" required defaultValue={defaults.event_time || ""}/></label>
-    <label>Horário do brinde<input name="toast_time" type="time" defaultValue={defaults.toast_time || ""}/></label>
+    <DateTimeInput label="Data do evento *" name="event_date" type="date" required defaultValue={defaults.event_date || ""}/>
+    <DateTimeInput label="Horário do evento *" name="event_time" type="time" required defaultValue={defaults.event_time || ""}/>
+    <DateTimeInput label="Horário do brinde" name="toast_time" type="time" defaultValue={defaults.toast_time || ""}/>
     <label>Local do evento *<input name="venue" required placeholder="Espaço ou endereço" defaultValue={defaults.venue || ""} onBlur={capitalize}/></label>
     <label>Cerimonial<input name="ceremony_contact" defaultValue={defaults.ceremony_contact || ""} onBlur={capitalize}/></label>
     <label>Indicação<input name="referral" placeholder="Como conheceu a Brindare?" defaultValue={defaults.referral || ""} onBlur={capitalize}/></label>

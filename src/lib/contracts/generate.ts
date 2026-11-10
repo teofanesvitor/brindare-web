@@ -47,9 +47,6 @@ function contractDate(): string {
   return `${value.day} de ${String(value.month).toLocaleUpperCase("pt-BR")} de ${value.year}`;
 }
 export async function generateContract(input: ContractInput, supabase: SupabaseClient, userId: string) {
-  if (input.fogos > 0) {
-    throw new Error("A cláusula oficial de segurança para fogos precisa ser definida no modelo antes de gerar contratos com fogos.");
-  }
   const eventDate = localDate(input.eventDate), fileName = nomeContrato(input.client, input.eventDate);
   const toastDeadline = formatDate(shiftDays(eventDate, -3));
   const toastText = input.toastTime?.trim()
