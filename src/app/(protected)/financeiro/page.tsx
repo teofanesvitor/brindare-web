@@ -14,7 +14,6 @@ const monthLabel = (key: string) => {
   const [year, month] = key.split("-").map(Number);
   return new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date(year, month - 1, 1));
 };
-const monthStart = (key: string) => `${key}-01`;
 const addMonths = (key: string, amount: number) => {
   const [year, month] = key.split("-").map(Number);
   const value = new Date(year, month - 1 + amount, 1);
