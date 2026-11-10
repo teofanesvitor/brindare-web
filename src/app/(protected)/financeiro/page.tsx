@@ -73,8 +73,10 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
     months.push({ key, revenue, paidExpenses, plannedExpenses, net, balance: key >= openingMonth ? runningBalance : null });
   }
   const trackedMonths = months.filter(row => row.key >= openingMonth && row.key <= currentMonth);
+  const historicalMonths = months.filter(row => row.key <= currentMonth);
   const totalRevenue = trackedMonths.reduce((sum, row) => sum + row.revenue, 0);
   const totalPaidExpenses = trackedMonths.reduce((sum, row) => sum + row.paidExpenses, 0);
+  const totalHistoricalPaidExpenses = historicalMonths.reduce((sum, row) => sum + row.paidExpenses, 0);
   const operatingResult = totalRevenue - totalPaidExpenses;
   const cashBalance = openingBalance + operatingResult;
   const current = months.find(row => row.key === currentMonth) ?? { revenue: 0, paidExpenses: 0, plannedExpenses: 0, net: 0 };
@@ -112,7 +114,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
       <article><span>Saldo de caixa estimado</span><strong>{money(cashBalance)}</strong><small>Saldo inicial + movimentações desde {monthLabel(openingMonth)}</small></article>
       <article><span>Resultado operacional acumulado</span><strong>{money(operatingResult)}</strong><small>Recebimentos menos despesas pagas</small></article>
       <article><span>Total recebido no período</span><strong>{money(totalRevenue)}</strong><small>Pagamentos efetivamente registrados</small></article>
-      <article><span>Total desembolsado</span><strong>{money(totalPaidExpenses)}</strong><small>Despesas efetivamente pagas</small></article>
+      <article><span>Total desembolsado</span><strong>{money(totalHistoricalPaidExpenses)}</strong><small>Despesas efetivamente pagas no histórico exibido</small></article>
       <article><span>Contas a receber</span><strong>{money(Number(receivables?.receivable_cents ?? 0))}</strong><small>{Number(receivables?.open_events ?? 0)} eventos com saldo aberto</small></article>
       <article><span>Contas a pagar</span><strong>{money(plannedTotal)}</strong><small>Parcelas e despesas ainda previstas</small></article>
     </section>
