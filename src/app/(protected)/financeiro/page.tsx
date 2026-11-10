@@ -22,8 +22,8 @@ const addMonths = (key: string, amount: number) => {
 type SearchParams = Promise<{ installment?: string; expense?: string; settings?: string }>;
 
 type ExpenseRow = { id: string; description: string; category: string; amount_cents: number; due_date: string; status: string; paid_at: string | null; payment_method: string | null };
-type InstallmentRow = { id: string; installment_number: number; amount_cents: number; due_date: string; status: string; paid_at: string | null; inventory_purchases: { installments: number; inventory_items: { name: string } | null } | null };
-type EventPaymentRow = { id: string; amount_cents: number; paid_at: string; payment_method: string | null; notes: string | null; events: { client_name: string } | null };
+type InstallmentRow = { id: string; installment_number: number; amount_cents: number; due_date: string; status: string; paid_at: string | null; inventory_purchases: { installments: number; inventory_items: { name: string }[] }[] };
+type EventPaymentRow = { id: string; amount_cents: number; paid_at: string; payment_method: string | null; notes: string | null; events: { client_name: string }[] };
 
 
 export default async function FinanceiroPage({ searchParams }: { searchParams: SearchParams }) {
@@ -84,12 +84,12 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
   const chartMax = Math.max(1, ...chartRows.flatMap(row => [row.revenue, row.paidExpenses]));
   const recent = [
     ...payments.map(row => ({
-      id: row.id, date: row.paid_at, kind: "Receita", detail: row.events?.client_name ?? "Pagamento de evento",
+      id: row.id, date: row.paid_at, kind: "Receita", detail: row.events?.[0]?.client_name ?? "Pagamento de evento",
       category: row.payment_method ?? "Evento", amount: Number(row.amount_cents), status: "Recebido",
     })),
     ...installments.map(row => ({
-      id: row.id, date: row.paid_at ?? row.due_date, kind: "Despesa", detail: row.inventory_purchases?.inventory_items?.name ?? "Compra de estoque",
-      category: `Estoque · ${row.installment_number}/${row.inventory_purchases?.installments ?? 1}`,
+      id: row.id, date: row.paid_at ?? row.due_date, kind: "Despesa", detail: row.inventory_purchases?.[0]?.inventory_items?.[0]?.name ?? "Compra de estoque",
+      category: `Estoque · ${row.installment_number}/${row.inventory_purchases?.[0]?.installments ?? 1}`,
       amount: Number(row.amount_cents), status: row.status === "paga" ? "Pago" : "Previsto",
     })),
     ...expenses.map(row => ({
