@@ -233,6 +233,63 @@ export async function markInventoryInstallmentPaid(form: FormData) {
   redirect("/financeiro?installment=paid");
 }
 
+
+export async function createFinancialExpense(form: FormData) {
+  const { user } = await requireAdmin();
+  const supabase = await createClient();
+  const description = text(form, "description");
+  const category = text(form, "category");
+  const amount = Number(form.get("amount"));
+  const dueDate = text(form, "due_date");
+  const status = text(form, "status") === "paga" ? "paga" : "prevista";
+  const paidAt = text(form, "paid_at");
+  const paymentMethod = text(form, "payment_method");
+  const categories = ["Transporte", "Combustível", "Manutenção", "Mão de obra", "Serviços terceirizados", "Materiais", "Administrativo", "Impostos e taxas", "Outros"];
+  if (description.length < 2 || !categories.includes(category)) throw new Error("Informe uma descrição e uma categoria válida.");
+  if (!Number.isFinite(amount) || amount <= 0) throw new Error("Informe um valor maior que zero.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) throw new Error("Informe uma data de vencimento válida.");
+  if (status === "paga" && !/^\d{4}-\d{2}-\d{2}$/.test(paidAt)) throw new Error("Informe a data do pagamento.");
+  const { error } = await supabase.from("financial_expenses").insert({
+    description, category, amount_cents: Math.round(amount * 100),
+    due_date: dueDate, status, paid_at: status === "paga" ? paidAt : null,
+    payment_method: paymentMethod || null, created_by: user.id,
+  });
+  if (error) throw new Error("Não foi possível registrar a despesa: " + error.message);
+  revalidatePath("/financeiro");
+  redirect("/financeiro?expense=registered");
+}
+
+export async function markFinancialExpensePaid(form: FormData) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const expenseId = text(form, "expense_id");
+  const paidAt = text(form, "paid_at");
+  if (!expenseId || !/^\d{4}-\d{2}-\d{2}$/.test(paidAt)) throw new Error("Informe a despesa e a data de pagamento.");
+  const { error } = await supabase.from("financial_expenses").update({
+    status: "paga", paid_at: paidAt,
+  }).eq("id", expenseId).eq("status", "prevista");
+  if (error) throw new Error("Não foi possível quitar a despesa: " + error.message);
+  revalidatePath("/financeiro");
+  redirect("/financeiro?expense=paid");
+}
+
+export async function updateFinancialOpeningBalance(form: FormData) {
+  const { user } = await requireAdmin();
+  const supabase = await createClient();
+  const amount = Number(form.get("opening_balance"));
+  const date = text(form, "opening_balance_date");
+  if (!Number.isFinite(amount) || amount < 0 || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw new Error("Informe um saldo inicial válido e a data de referência.");
+  }
+  const { error } = await supabase.from("financial_settings").upsert({
+    id: true, opening_balance_cents: Math.round(amount * 100),
+    opening_balance_date: date, updated_by: user.id, updated_at: new Date().toISOString(),
+  }, { onConflict: "id" });
+  if (error) throw new Error("Não foi possível salvar o saldo inicial: " + error.message);
+  revalidatePath("/financeiro");
+  redirect("/financeiro?settings=saved");
+}
+
 export async function updateEventStatus(form: FormData) {
   await requireAdmin();
   const supabase = await createClient();
