@@ -278,9 +278,10 @@ export async function updateFinancialOpeningBalance(form: FormData) {
   const supabase = await createClient();
   const amount = Number(form.get("opening_balance"));
   const date = text(form, "opening_balance_date");
-  if (!Number.isFinite(amount) || amount < 0 || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    throw new Error("Informe um saldo inicial válido e a data de referência.");
+  if (!Number.isFinite(amount) || amount < 0 || !/^\d{4}-\d{2}$/.test(date)) {
+    throw new Error("Informe um saldo inicial válido e o mês de referência.");
   }
+  const openingDate = `${date}-01`;
   const { error } = await supabase.from("financial_settings").upsert({
     id: true, opening_balance_cents: Math.round(amount * 100),
     opening_balance_date: openingDate, updated_by: user.id, updated_at: new Date().toISOString(),
