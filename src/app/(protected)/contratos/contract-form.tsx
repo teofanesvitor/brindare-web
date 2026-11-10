@@ -73,7 +73,7 @@ function Field({ label, name, type = "text", required = false, defaultValue = ""
     {isDate || isTime ? <>
       <input type="text" inputMode={isDate ? "numeric" : "decimal"} maxLength={maxLength} required={required}
         value={formattedValue} onChange={formatDigits} placeholder={isDate ? "DD/MM/AAAA" : "HH:MM"}
-        pattern={isDate ? "\d{2}/\d{2}/\d{4}" : "(?:[01]\d|2[0-3]):[0-5]\d"}
+        pattern={isDate ? "[0-9]{2}/[0-9]{2}/[0-9]{4}" : "(?:[01][0-9]|2[0-3]):[0-5][0-9]"}
         title={isDate ? "Use o formato DD/MM/AAAA." : "Use o formato 24 horas HH:MM."}/>
       <input type="hidden" name={name} value={isDate ? isoDate : validTime ? formattedValue : ""}/>
     </> : <input name={name} type={digitsOnly ? "text" : type} inputMode={digitsOnly ? "numeric" : undefined} maxLength={maxLength} required={required} defaultValue={initialValue} min={min} step={step} placeholder={isCpf ? "000.000.000-00" : isPhone ? "(00) 9 0000-0000" : undefined} onChange={formatDigits} onBlur={capitalize}/>}
