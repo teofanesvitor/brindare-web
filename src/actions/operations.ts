@@ -283,7 +283,7 @@ export async function updateFinancialOpeningBalance(form: FormData) {
   }
   const { error } = await supabase.from("financial_settings").upsert({
     id: true, opening_balance_cents: Math.round(amount * 100),
-    opening_balance_date: date, updated_by: user.id, updated_at: new Date().toISOString(),
+    opening_balance_date: openingDate, updated_by: user.id, updated_at: new Date().toISOString(),
   }, { onConflict: "id" });
   if (error) throw new Error("Não foi possível salvar o saldo inicial: " + error.message);
   revalidatePath("/financeiro");
