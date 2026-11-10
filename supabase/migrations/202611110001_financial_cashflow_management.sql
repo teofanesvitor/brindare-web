@@ -139,3 +139,17 @@ left join received r on r.event_id = e.id
 where e.status <> 'Cancelado';
 
 grant select on public.financial_receivables_summary to authenticated;
+
+create or replace view public.financial_payables_summary
+with (security_invoker = true)
+as
+with payables as (
+  select amount_cents, due_date, status from public.inventory_purchase_installments
+  union all
+  select amount_cents, due_date, status from public.financial_expenses
+)
+select coalesce(sum(amount_cents) filter (where status = 'prevista'), 0)::bigint as pending_cents,
+       coalesce(sum(amount_cents) filter (where status = 'prevista' and due_date < current_date), 0)::bigint as overdue_cents
+from payables;
+
+grant select on public.financial_payables_summary to authenticated;
