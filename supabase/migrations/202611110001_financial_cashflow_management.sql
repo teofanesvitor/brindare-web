@@ -153,3 +153,22 @@ select coalesce(sum(amount_cents) filter (where status = 'prevista'), 0)::bigint
 from payables;
 
 grant select on public.financial_payables_summary to authenticated;
+
+-- Garante data efetiva também para compras à vista registradas após esta migration.
+create or replace function public.set_inventory_installment_paid_date()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if new.status = 'paga' and new.paid_at is null then
+    new.paid_at := new.due_date;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists inventory_installment_paid_date on public.inventory_purchase_installments;
+create trigger inventory_installment_paid_date
+before insert or update of status, paid_at on public.inventory_purchase_installments
+for each row execute function public.set_inventory_installment_paid_date();
