@@ -123,3 +123,19 @@ left join planned_inventory pi using (month_start)
 left join planned_other po using (month_start);
 
 grant select on public.financial_cashflow_monthly to authenticated;
+
+create or replace view public.financial_receivables_summary
+with (security_invoker = true)
+as
+with received as (
+  select event_id, sum(amount_cents)::bigint as received_cents
+  from public.event_payments
+  group by event_id
+)
+select count(*)::bigint as open_events,
+       coalesce(sum(greatest(e.total_cents - coalesce(r.received_cents, 0), 0)), 0)::bigint as receivable_cents
+from public.events e
+left join received r on r.event_id = e.id
+where e.status <> 'Cancelado';
+
+grant select on public.financial_receivables_summary to authenticated;
