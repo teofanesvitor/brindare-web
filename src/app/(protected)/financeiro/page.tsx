@@ -26,12 +26,13 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
   const params = await searchParams;
   const supabase = await createClient();
   const [
-    monthlyResult, settingsResult, receivablesResult, expensesResult,
+    monthlyResult, settingsResult, receivablesResult, payablesResult, expensesResult,
     installmentsResult, paymentsResult,
   ] = await Promise.all([
     supabase.from("financial_cashflow_monthly").select("month_start,revenue_cents,paid_expenses_cents,planned_expenses_cents").order("month_start", { ascending: true }),
     supabase.from("financial_settings").select("opening_balance_cents,opening_balance_date").eq("id", true).maybeSingle(),
     supabase.from("financial_receivables_summary").select("open_events,receivable_cents").maybeSingle(),
+    supabase.from("financial_payables_summary").select("pending_cents,overdue_cents").maybeSingle(),
     supabase.from("financial_expenses").select("id,description,category,amount_cents,due_date,status,paid_at,payment_method").order("due_date", { ascending: false }).limit(60),
     supabase.from("inventory_purchase_installments").select("id,installment_number,amount_cents,due_date,status,paid_at,inventory_purchases(description,installments,inventory_items(name))").order("due_date", { ascending: false }).limit(60),
     supabase.from("event_payments").select("id,amount_cents,paid_at,payment_method,notes,events(client_name)").order("paid_at", { ascending: false }).limit(60),
@@ -49,10 +50,13 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
 
   const monthlyMap = new Map(monthlyRows.map(row => [monthKey(row.month_start), row]));
   const firstMonth = monthlyRows.length ? monthKey(monthlyRows[0].month_start) : openingMonth;
+  const lastDataMonth = monthlyRows.length ? monthKey(monthlyRows[monthlyRows.length - 1].month_start) : currentMonth;
   const startMonth = firstMonth < openingMonth ? firstMonth : openingMonth;
+  const defaultEndMonth = addMonths(currentMonth, 12);
+  const endMonth = lastDataMonth > defaultEndMonth ? lastDataMonth : defaultEndMonth;
   const months: { key: string; revenue: number; paidExpenses: number; plannedExpenses: number; net: number; balance: number | null }[] = [];
   let runningBalance = openingBalance;
-  for (let key = startMonth; key <= addMonths(currentMonth, 12); key = addMonths(key, 1)) {
+  for (let key = startMonth; key <= endMonth; key = addMonths(key, 1)) {
     const row = monthlyMap.get(key);
     const revenue = Number(row?.revenue_cents ?? 0);
     const paidExpenses = Number(row?.paid_expenses_cents ?? 0);
@@ -67,10 +71,8 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
   const operatingResult = totalRevenue - totalPaidExpenses;
   const cashBalance = openingBalance + operatingResult;
   const current = months.find(row => row.key === currentMonth) ?? { revenue: 0, paidExpenses: 0, plannedExpenses: 0, net: 0 };
-  const plannedTotal = months.filter(row => row.key >= currentMonth).reduce((sum, row) => sum + row.plannedExpenses, 0);
-  const overdueInventory = (installmentsResult.data ?? []).filter((row: any) => row.status === "prevista" && row.due_date < today);
-  const overdueExpenses = (expensesResult.data ?? []).filter((row: any) => row.status === "prevista" && row.due_date < today);
-  const overdueTotal = [...overdueInventory, ...overdueExpenses].reduce((sum: number, row: any) => sum + Number(row.amount_cents), 0);
+  const plannedTotal = Number((payablesResult.data as { pending_cents: number; overdue_cents: number } | null)?.pending_cents ?? 0);
+  const overdueTotal = Number((payablesResult.data as { pending_cents: number; overdue_cents: number } | null)?.overdue_cents ?? 0);
   const chartRows = months.filter(row => row.key <= currentMonth).slice(-12);
   const chartMax = Math.max(1, ...chartRows.flatMap(row => [row.revenue, row.paidExpenses]));
   const recent = [
@@ -89,7 +91,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
     })),
   ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 30);
 
-  const dataError = monthlyResult.error || settingsResult.error || receivablesResult.error;
+  const dataError = monthlyResult.error || settingsResult.error || receivablesResult.error || payablesResult.error;
   const expenseError = expensesResult.error;
   return <main className="content">
     <div className="page-heading"><div><div className="eyebrow">Gestão financeira</div><h1>Fluxo de caixa</h1><p>Visão histórica, posição acumulada e compromissos financeiros da Brindare.</p></div></div>
@@ -133,7 +135,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
         <article><span>Saldo de contas a receber</span><strong>{money(Number(receivables?.receivable_cents ?? 0))}</strong></article>
       </div>
       <div className="operation-table-wrap"><table className="operation-table"><thead><tr><th>Competência</th><th>Receitas</th><th>Despesas pagas</th><th>Despesas a reservar</th><th>Resultado realizado</th></tr></thead><tbody>
-        {months.filter(row => row.key >= currentMonth && row.plannedExpenses + row.revenue + row.paidExpenses > 0).slice(0, 13).map(row => <tr key={row.key}><td><strong>{monthLabel(row.key)}</strong></td><td>{money(row.revenue)}</td><td>{money(row.paidExpenses)}</td><td><strong>{money(row.plannedExpenses)}</strong></td><td>{money(row.net)}</td></tr>)}
+        {months.filter(row => row.key >= currentMonth && row.plannedExpenses + row.revenue + row.paidExpenses > 0).map(row => <tr key={row.key}><td><strong>{monthLabel(row.key)}</strong></td><td>{money(row.revenue)}</td><td>{money(row.paidExpenses)}</td><td><strong>{money(row.plannedExpenses)}</strong></td><td>{money(row.net)}</td></tr>)}
       </tbody></table></div>
     </section>
 
@@ -169,6 +171,12 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
       </tbody></table></div>}
     </section>
 
+    <section className="operation-panel">
+      <div className="operation-title"><div><h2>Parcelas de estoque pendentes</h2><p>Compras parceladas que ainda precisam ser quitadas.</p></div></div>
+      {!(installmentsResult.data ?? []).filter((row: any) => row.status === "prevista").length ? <p className="operation-empty">Nenhuma parcela de estoque pendente.</p> : <div className="operation-table-wrap"><table className="operation-table"><thead><tr><th>Competência</th><th>Produto</th><th>Parcela</th><th>Valor</th><th>Situação</th><th>Ação</th></tr></thead><tbody>
+        {(installmentsResult.data ?? []).filter((row: any) => row.status === "prevista").map((row: any) => <tr key={row.id}><td>{monthLabel(monthKey(row.due_date))}</td><td>{row.inventory_purchases?.inventory_items?.name ?? "Compra de estoque"}</td><td>{row.installment_number}/{row.inventory_purchases?.installments ?? 1}</td><td><strong>{money(Number(row.amount_cents))}</strong></td><td><span className="status-pill status-a-pagar">{row.due_date < today ? "Vencida" : "A reservar"}</span></td><td><form action={markInventoryInstallmentPaid}><input type="hidden" name="installment_id" value={row.id}/><button className="operation-link" type="submit">Marcar como paga</button></form></td></tr>)}
+      </tbody></table></div>}
+    </section>
     <section className="operation-panel">
       <div className="operation-title"><div><h2>Histórico recente de movimentações</h2><p>Últimos recebimentos e lançamentos de despesas. O histórico mensal acima é integral e não depende deste limite de exibição.</p></div></div>
       {!recent.length ? <p className="operation-empty">Nenhuma movimentação registrada.</p> : <div className="operation-table-wrap"><table className="operation-table"><thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Categoria / referência</th><th>Valor</th><th>Situação</th></tr></thead><tbody>
