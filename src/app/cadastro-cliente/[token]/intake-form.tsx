@@ -55,7 +55,7 @@ function DateTimeInput({ label, name, type, required = false, defaultValue = "" 
   }
   return <label>{label}<input type="text" inputMode="numeric" value={value} onChange={event => update(event.target.value)}
     placeholder={isDate ? "DD/MM/AAAA" : "HH:MM"} maxLength={isDate ? 10 : 5} required={required}
-    pattern={isDate ? "\d{2}/\d{2}/\d{4}" : "(?:[01]\d|2[0-3]):[0-5]\d"}
+    pattern={isDate ? "[0-9]{2}/[0-9]{2}/[0-9]{4}" : "(?:[01][0-9]|2[0-3]):[0-5][0-9]"}
     title={isDate ? "Use o formato DD/MM/AAAA." : "Use o formato 24 horas HH:MM."}/>
     <input type="hidden" name={name} value={isDate ? isoDate : validTime ? value : ""}/>
   </label>;
