@@ -26,11 +26,11 @@ function capitalizeWords(value: string) {
   return value.toLocaleLowerCase("pt-BR").replace(/(^|\s|[-'])\p{L}/gu, (match) => match.toLocaleUpperCase("pt-BR"));
 }
 function formatDateBr(value: string) {
-  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return value.slice(8, 10) + "/" + value.slice(5, 7) + "/" + value.slice(0, 4);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value.slice(8, 10) + "/" + value.slice(5, 7) + "/" + value.slice(0, 4);
   return value;
 }
 function dateBrToIso(value: string) {
-  const match = /^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/.exec(value);
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
   if (!match) return "";
   const [, day, month, year] = match;
   const date = new Date(Number(year), Number(month) - 1, Number(day));
@@ -52,14 +52,14 @@ function Field({ label, name, type = "text", required = false, defaultValue = ""
     if (isCpf) event.currentTarget.value = maskCpf(event.currentTarget.value);
     if (isPhone) event.currentTarget.value = maskPhone(event.currentTarget.value);
     if (isDate) {
-      const digits = event.currentTarget.value.replace(/\\D/g, "").slice(0, 8);
+      const digits = event.currentTarget.value.replace(/\D/g, "").slice(0, 8);
       const value = digits.length > 4 ? `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
         : digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
       setFormattedValue(value);
       event.currentTarget.value = value;
     }
     if (isTime) {
-      const digits = event.currentTarget.value.replace(/\\D/g, "").slice(0, 4);
+      const digits = event.currentTarget.value.replace(/\D/g, "").slice(0, 4);
       const value = digits.length > 2 ? `${digits.slice(0, 2)}:${digits.slice(2)}` : digits;
       setFormattedValue(value);
       event.currentTarget.value = value;
@@ -68,12 +68,12 @@ function Field({ label, name, type = "text", required = false, defaultValue = ""
   const initialDigits = String(defaultValue);
   const initialValue = isCpf ? maskCpf(initialDigits) : isPhone ? maskPhone(initialDigits) : defaultValue;
   const isoDate = isDate ? dateBrToIso(formattedValue) : "";
-  const validTime = isTime && /^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(formattedValue);
+  const validTime = isTime && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(formattedValue);
   return <label className="contract-field"><span>{label}{required ? " *" : ""}</span>
     {isDate || isTime ? <>
       <input type="text" inputMode={isDate ? "numeric" : "decimal"} maxLength={maxLength} required={required}
         value={formattedValue} onChange={formatDigits} placeholder={isDate ? "DD/MM/AAAA" : "HH:MM"}
-        pattern={isDate ? "\\d{2}/\\d{2}/\\d{4}" : "(?:[01]\\d|2[0-3]):[0-5]\\d"}
+        pattern={isDate ? "\d{2}/\d{2}/\d{4}" : "(?:[01]\d|2[0-3]):[0-5]\d"}
         title={isDate ? "Use o formato DD/MM/AAAA." : "Use o formato 24 horas HH:MM."}/>
       <input type="hidden" name={name} value={isDate ? isoDate : validTime ? formattedValue : ""}/>
     </> : <input name={name} type={digitsOnly ? "text" : type} inputMode={digitsOnly ? "numeric" : undefined} maxLength={maxLength} required={required} defaultValue={initialValue} min={min} step={step} placeholder={isCpf ? "000.000.000-00" : isPhone ? "(00) 9 0000-0000" : undefined} onChange={formatDigits} onBlur={capitalize}/>}
