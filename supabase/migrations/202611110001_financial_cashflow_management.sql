@@ -132,7 +132,7 @@ with received as (
   from public.event_payments
   group by event_id
 )
-select count(*)::bigint as open_events,
+select count(*) filter (where greatest(e.total_cents - coalesce(r.received_cents, 0), 0) > 0)::bigint as open_events,
        coalesce(sum(greatest(e.total_cents - coalesce(r.received_cents, 0), 0)), 0)::bigint as receivable_cents
 from public.events e
 left join received r on r.event_id = e.id
