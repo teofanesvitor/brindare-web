@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { CalendarDays, ChartNoAxesCombined, FileText, LayoutDashboard, Menu, Package, Settings, Users, Wallet, X } from "lucide-react";
+import { CalendarDays, FileText, LayoutDashboard, Menu, Package, Settings, Users, Wallet, X } from "lucide-react";
 
 const items = [
   { label: "Visão geral", href: "/dashboard", icon: LayoutDashboard },
