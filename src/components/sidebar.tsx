@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, ChartNoAxesCombined, FileText, LayoutDashboard, Package, Settings, Users, Wallet } from "lucide-react";
+import { CalendarDays, FileText, LayoutDashboard, Package, Settings, Users, Wallet } from "lucide-react";
 const items = [
   { label: "Visão geral", href: "/dashboard", icon: LayoutDashboard },
   { label: "Agenda", href: "/agenda", icon: CalendarDays },
