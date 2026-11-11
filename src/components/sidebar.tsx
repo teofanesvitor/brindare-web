@@ -13,8 +13,8 @@ const items = [
 export function Sidebar({ pendingClients = 0 }: { pendingClients?: number }) {
   const pathname = usePathname();
   return <aside className="sidebar"><Link href="/dashboard" className="side-logo">brindare<span>.</span></Link>
-    <div className="nav-label">MENU PRINCIPAL</div>
+    
     {items.map(({ label, href, icon: Icon }) => <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined} className={`nav-link${pathname === href ? " active" : ""}`}><Icon size={17} strokeWidth={1.8}/>{label}{href === "/clientes" && pendingClients > 0 && <span className="nav-count">{pendingClients > 99 ? "99+" : pendingClients}</span>}</Link>)}
-    <div className="sidebar-bottom"><div className="nav-label">SISTEMA</div><Link href="/configuracoes" className={`nav-link${pathname === "/configuracoes" ? " active" : ""}`}><Settings size={17}/>Configurações</Link><div className="nav-link" style={{ cursor: "default", color: "#aaa59a" }}><ChartNoAxesCombined size={17}/>Relatórios · Em breve</div></div>
+    <div className="sidebar-bottom"><Link href="/configuracoes" className={`nav-link${pathname === "/configuracoes" ? " active" : ""}`}><Settings size={17}/>Configurações</Link></div>
   </aside>;
 }
