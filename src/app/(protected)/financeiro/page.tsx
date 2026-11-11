@@ -169,7 +169,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
           <label>Mês de início do controle<input name="opening_balance_date" type="month" required defaultValue={openingMonth}/></label>
           <button className="operation-submit full-width" type="submit">Atualizar saldo inicial</button>
         </form>
-        <p className="operation-hint">O saldo acumulado considera o saldo inicial informado mais receitas e despesas efetivamente pagas a partir do primeiro dia do mês selecionado. Use o mês em que começa a conciliação do caixa para evitar duplicidade.</p>
+        <p className="operation-hint">O saldo considera as movimentações a partir do mês inicial selecionado.</p>
       </section>
     </section>
 
@@ -192,6 +192,6 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
         {recent.map(row => <tr key={`${row.kind}-${row.id}`}><td>{date(row.date)}</td><td>{row.kind}</td><td>{row.detail}</td><td>{row.category}</td><td><strong>{money(row.amount)}</strong></td><td>{row.status}</td></tr>)}
       </tbody></table></div>}
     </section>
-    <p className="operation-hint">Receitas são contabilizadas pela data do recebimento. Despesas pagas entram no caixa pela data efetiva do pagamento; compromissos pendentes permanecem no planejamento até a quitação. O saldo de caixa é uma estimativa gerencial e deve ser conciliado com bancos e dinheiro físico.</p>
+    <p className="operation-hint">Receitas entram pela data do recebimento; despesas, pela data do pagamento. Concilie o saldo com bancos e dinheiro físico.</p>
   </main>;
 }
