@@ -50,8 +50,8 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
   return (
     <main className="content">
       <div className="page-heading"><div>
-        <div className="eyebrow">Operação</div><h1>Agenda</h1>
-        <p>Acompanhe eventos, contratos assinados e pagamentos recebidos.</p>
+        <h1>Agenda</h1>
+        
       </div></div>
 
       <section className="agenda-finance-summary">
@@ -63,7 +63,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
       <section className="operation-panel">
         <div className="operation-title">
           <div><h2><CalendarDays size={17} /> Eventos</h2>
-            <p>Contrato e situação financeira são acompanhados separadamente.</p></div>
+            </div>
           <form className="agenda-filters" method="get">
             <select name="periodo" defaultValue={period} aria-label="Período">
               <option value="futuros">Próximos eventos</option><option value="todos">Todos os eventos</option>
