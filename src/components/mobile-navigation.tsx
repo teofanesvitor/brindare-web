@@ -25,7 +25,7 @@ export function MobileNavigation({ pendingClients = 0 }: { pendingClients?: numb
       {open && <>
         <button type="button" className="mobile-navigation-backdrop" aria-label="Fechar menu" onClick={close}/>
         <nav id="mobile-navigation-panel" className="mobile-navigation-panel" aria-label="Navegação principal">
-          <div className="mobile-navigation-label">MENU PRINCIPAL</div>
+          
           {items.map(({ label, href, icon: Icon }) => (
             <Link key={href} href={href} onClick={close} aria-current={pathname === href ? "page" : undefined} className={"mobile-navigation-link" + (pathname === href ? " active" : "")}>
               <Icon size={18} strokeWidth={1.8}/><span>{label}</span>
@@ -34,7 +34,7 @@ export function MobileNavigation({ pendingClients = 0 }: { pendingClients?: numb
           ))}
           <div className="mobile-navigation-divider"/>
           <Link href="/configuracoes" onClick={close} aria-current={pathname === "/configuracoes" ? "page" : undefined} className={"mobile-navigation-link" + (pathname === "/configuracoes" ? " active" : "")}><Settings size={18}/><span>Configurações</span></Link>
-          <div className="mobile-navigation-disabled"><ChartNoAxesCombined size={18}/><span>Relatórios · Em breve</span></div>
+          
         </nav>
       </>}
     </div>
