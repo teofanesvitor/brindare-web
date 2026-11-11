@@ -2,7 +2,6 @@ import { Package, ArrowUpCircle, AlertTriangle, ShoppingCart } from "lucide-reac
 import { createClient } from "@/lib/supabase/server";
 import { createInventoryItem, createInventoryPurchase } from "@/actions/operations";
 
-const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 type SearchParams = Promise<{ purchase?: string }>;
 
 export default async function EstoquePage({ searchParams }: { searchParams: SearchParams }) {
@@ -40,7 +39,7 @@ export default async function EstoquePage({ searchParams }: { searchParams: Sear
           <label className="operation-form-wide">Descrição<input name="description" placeholder="Fornecedor, nota fiscal ou observação"/></label>
           <button className="operation-submit" type="submit">Registrar compra</button>
         </form>
-        <p className="operation-hint">Compras em dinheiro, Pix e débito entram como pagas na data informada. Compras no crédito geram parcelas mensais previstas a partir do mês seguinte à compra. O sistema usa o primeiro dia de cada mês como competência para planejamento, sem depender do vencimento real da fatura.</p>
+        <p className="operation-hint">No crédito, as parcelas entram no planejamento a partir do mês seguinte à compra.</p>
       </section>
 
       <section className="operation-panel"><div className="operation-title"><div><h2><Package size={17}/> Cadastrar item</h2></div></div>
