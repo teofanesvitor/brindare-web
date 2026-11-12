@@ -6,7 +6,7 @@ const money = (c: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(c / 100);
 const date = (value: string) => new Date(`${value}T12:00:00`).toLocaleDateString("pt-BR");
 
-type SearchParams = Promise<{ status?: string; periodo?: string; payment?: string; signed?: string }>;
+type SearchParams = Promise<{ status?: string; periodo?: string; payment?: string; signed?: string; created?: string }>;
 
 export default async function AgendaPage({ searchParams }: { searchParams: SearchParams }) {
   const filters = await searchParams;
@@ -109,8 +109,8 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
           <div className="operation-table-wrap">
             <table className="operation-table agenda-table">
               <thead><tr>
-                <th>Data / hora</th><th>Cliente</th><th>Local</th><th>Pacote</th>
-                <th>Valor contratado</th><th>Recebido</th><th>Saldo</th><th>Status financeiro</th>
+                <th>Data / hora</th><th>Cliente / parceiro</th><th>Local</th><th>Tipo de evento</th>
+                <th>Valor previsto</th><th>Recebido</th><th>Saldo</th><th>Status financeiro</th>
                 <th>Execução do evento</th><th>Contrato assinado</th><th>Registrar pagamento</th>
               </tr></thead>
               <tbody>{rows.map((event) => (
