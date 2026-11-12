@@ -189,3 +189,13 @@
   .dashboard-panel-heading { align-items: flex-start; }
   .dashboard-source-link { font-size: .78rem; }
 }
+
+.agenda-create-event{padding:0;overflow:hidden}
+.agenda-create-summary{list-style:none;cursor:pointer;padding:16px 19px;font-size:13px;font-weight:700;color:var(--ink)}
+.agenda-create-summary::-webkit-details-marker{display:none}
+.agenda-create-summary:after{content:"＋";float:right;color:var(--brand-dark);font-size:16px}
+.agenda-create-event[open] .agenda-create-summary{border-bottom:1px solid var(--line)}
+.agenda-create-event[open] .agenda-create-summary:after{content:"−"}
+.agenda-create-form{padding:18px}
+.agenda-create-form .operation-submit{height:42px;border:0;border-radius:8px;background:var(--ink);color:#fff;font-weight:700;cursor:pointer}
+@media(max-width:640px){.agenda-create-form{grid-template-columns:1fr}}
