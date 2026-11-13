@@ -135,7 +135,8 @@ export async function createEvent(form: FormData) {
   const total = number(form, "total"), deposit = number(form, "deposit");
   const payload = {
     client_name: text(form, "client_name"), event_date: text(form, "event_date"),
-    event_time: text(form, "event_time") || null, venue: text(form, "venue"),
+    event_time: text(form, "event_time") || null, toast_time: text(form, "toast_time") || null,
+    venue: text(form, "venue"),
     ceremony_contact: text(form, "ceremony_contact") || null, referral: text(form, "referral") || null,
     package_name: text(form, "package_name"), total_cents: Math.round(total * 100),
     deposit_cents: Math.round(deposit * 100), balance_cents: Math.max(0, Math.round((total - deposit) * 100)),
@@ -144,7 +145,13 @@ export async function createEvent(form: FormData) {
     tables: Math.floor(number(form, "tables")), champagne: Math.floor(number(form, "champagne")),
     travel_cents: Math.round(number(form, "travel") * 100), created_by: user.id,
   };
-  if (!payload.client_name || !payload.event_date || !payload.venue || !payload.package_name) throw new Error("Preencha cliente, data, local e pacote.");
+  if (!payload.client_name || !/^\d{4}-\d{2}-\d{2}$/.test(payload.event_date) || !payload.venue || !payload.package_name) {
+    throw new Error("Preencha parceiro, data, local e tipo de evento.");
+  }
+  if (deposit > total) throw new Error("A entrada não pode ser maior que o valor total.");
+  if (payload.event_time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(payload.event_time)) {
+    throw new Error("Informe um horário válido.");
+  }
   const { error } = await supabase.from("events").insert(payload);
   if (error) throw new Error(error.message);
   revalidatePath("/agenda"); revalidatePath("/dashboard"); redirect("/agenda?created=1");
