@@ -145,14 +145,14 @@ export function ContractForm({ initialData = {} }: { initialData?: InitialData }
       <label className="contract-field"><span>Valor total (pacote + deslocamento)</span><input type="text" readOnly value={formatCurrency(totalCents)}/><input type="hidden" name="total" value={centsToNumber(totalCents)}/></label>
       <MoneyField label="Entrada *" name="deposit" cents={effectiveDepositCents} onChange={(value) => { setDepositCents(value); setDepositEdited(true); }}/>
       <label className="contract-field"><span>Restante (calculado automaticamente)</span><input type="text" readOnly value={formatCurrency(balanceCents)}/><input type="hidden" name="balance" value={centsToNumber(balanceCents)}/></label>
-    </div><p className="contract-hint">O valor total é calculado pelo preço fixo do pacote somado ao deslocamento. A entrada inicia em 50% do total e acompanha as alterações até ser editada manualmente. O restante é o total menos a entrada.</p></section>
+    </div><p className="contract-hint">Total = pacote + deslocamento. Entrada padrão: 50% do total; saldo = total − entrada.</p></section>
     <section className="contract-panel"><h2>Itens do pacote</h2><div className="contract-grid">
       <Field label="Mesa de apoio (0 = não incluir)" name="mesa" type="number" min="0" step="1" defaultValue="0"/>
       <label className="contract-field"><span>Taças de vidro (quantidade)</span><input name="tacas" type="number" min="0" step="1" list="glass-quantities" defaultValue="0"/><datalist id="glass-quantities"><option value="30"/><option value="55"/><option value="90"/></datalist></label>
       <Field label="Pares de fogos indoor" name="fogos" type="number" min="0" step="1" defaultValue="0"/>
       <Field label="Sparkles" name="sparkles" type="number" min="0" step="1" defaultValue="0"/>
       <Field label="Unidades de champanhe" name="champagne" type="number" min="0" step="1" defaultValue="0"/>
-    </div><p className="contract-hint">Pacotes de taças: 30 (4 andares), 55 (5 andares) ou 90 (6 andares). O campo aceita edição livre para exceções.</p><p className="contract-hint">A montagem e organização do cenário é incluída automaticamente. A cláusula de segurança é adicionada quando a quantidade de fogos for maior que zero.</p></section>
+    </div><p className="contract-hint">Quantidades padrão de taças: 30, 55 ou 90 unidades.</p></section>
     <button className="contract-submit" type="submit" disabled={pending}>{pending ? <><LoaderCircle size={17} className="spin"/> Gerando DOCX…</> : <><FileText size={17}/> Gerar contrato DOCX</>}</button>
     {result && (result.ok ? <div className="contract-success"><strong>Contrato gerado.</strong><span>{result.name}</span><div className="contract-links"><a href={result.documentUrl} download={`${result.name}.docx`}><FileDown size={16}/> Baixar contrato DOCX</a></div></div> : <div className="contract-error">{result.message}</div>)}
   </form>;

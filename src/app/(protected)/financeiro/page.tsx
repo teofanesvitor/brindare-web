@@ -103,7 +103,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
   const dataError = monthlyResult.error || settingsResult.error || receivablesResult.error || payablesResult.error;
   const expenseError = expensesResult.error;
   return <main className="content">
-    <div className="page-heading"><div><div className="eyebrow">Gestão financeira</div><h1>Fluxo de caixa</h1><p>Visão histórica, posição acumulada e compromissos financeiros da Brindare.</p></div></div>
+    <div className="page-heading"><div><h1>Fluxo de caixa</h1></div></div>
     {params.installment === "paid" && <p className="operation-success">Parcela marcada como paga.</p>}
     {params.expense === "registered" && <p className="operation-success">Despesa registrada.</p>}
     {params.expense === "paid" && <p className="operation-success">Despesa marcada como paga.</p>}
@@ -112,15 +112,15 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
 
     <section className="cashflow-kpis">
       <article><span>Saldo de caixa estimado</span><strong>{money(cashBalance)}</strong><small>Saldo inicial + movimentações desde {monthLabel(openingMonth)}</small></article>
-      <article><span>Resultado operacional acumulado</span><strong>{money(operatingResult)}</strong><small>Recebimentos menos despesas pagas</small></article>
-      <article><span>Total recebido no período</span><strong>{money(totalRevenue)}</strong><small>Pagamentos efetivamente registrados</small></article>
-      <article><span>Total desembolsado</span><strong>{money(totalHistoricalPaidExpenses)}</strong><small>Despesas efetivamente pagas no histórico exibido</small></article>
+      <article><span>Resultado operacional acumulado</span><strong>{money(operatingResult)}</strong></article>
+      <article><span>Total recebido no período</span><strong>{money(totalRevenue)}</strong></article>
+      <article><span>Total desembolsado</span><strong>{money(totalHistoricalPaidExpenses)}</strong></article>
       <article><span>Contas a receber</span><strong>{money(Number(receivables?.receivable_cents ?? 0))}</strong><small>{Number(receivables?.open_events ?? 0)} eventos com saldo aberto</small></article>
-      <article><span>Contas a pagar</span><strong>{money(plannedTotal)}</strong><small>Parcelas e despesas ainda previstas</small></article>
+      <article><span>Contas a pagar</span><strong>{money(plannedTotal)}</strong></article>
     </section>
 
     <section className="operation-panel">
-      <div className="operation-title"><div><h2><ChartNoAxesCombined size={17}/> Evolução mensal</h2><p>Histórico preservado por competência, com resultado e saldo acumulado.</p></div></div>
+      <div className="operation-title"><div><h2><ChartNoAxesCombined size={17}/> Evolução mensal</h2></div></div>
       <div className="cashflow-chart-legend"><span><i className="cashflow-dot revenue"/> Receitas</span><span><i className="cashflow-dot expense"/> Despesas pagas</span></div>
       {!chartRows.length ? <p className="operation-empty">Ainda não existem movimentações para montar o gráfico.</p> : <div className="cashflow-chart">{chartRows.map(row => <div className="cashflow-chart-month" key={row.key}>
         <div className="cashflow-bars"><div className="cashflow-bar revenue" style={{ height: `${Math.max(row.revenue ? 3 : 0, row.revenue / chartMax * 100)}%` }} title={`Receitas: ${money(row.revenue)}`}/><div className="cashflow-bar expense" style={{ height: `${Math.max(row.paidExpenses ? 3 : 0, row.paidExpenses / chartMax * 100)}%` }} title={`Despesas: ${money(row.paidExpenses)}`}/></div>
@@ -132,7 +132,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
     </section>
 
     <section className="operation-panel">
-      <div className="operation-title"><div><h2><CalendarClock size={17}/> Planejamento e reserva mensal</h2><p>Quanto reservar em cada mês para compromissos ainda não pagos.</p></div></div>
+      <div className="operation-title"><div><h2><CalendarClock size={17}/> Planejamento e reserva mensal</h2></div></div>
       <div className="agenda-finance-summary">
         <article><span>Receitas deste mês</span><strong>{money(current.revenue)}</strong></article>
         <article><span>Despesas pagas neste mês</span><strong>{money(current.paidExpenses)}</strong></article>
@@ -150,7 +150,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
 
     <section className="operation-columns cashflow-entry-columns">
       <section className="operation-panel">
-        <div className="operation-title"><div><h2><CircleDollarSign size={17}/> Registrar despesa</h2><p>Cadastre despesas operacionais fora das compras de estoque.</p></div></div>
+        <div className="operation-title"><div><h2><CircleDollarSign size={17}/> Registrar despesa</h2></div></div>
         <form action={createFinancialExpense} className="operation-form">
           <label className="full-width">Descrição<input name="description" placeholder="Ex.: combustível para evento" required minLength={2}/></label>
           <label>Categoria<select name="category" required><option value="">Selecione</option>{["Transporte","Combustível","Manutenção","Mão de obra","Serviços terceirizados","Materiais","Administrativo","Impostos e taxas","Outros"].map(item => <option key={item}>{item}</option>)}</select></label>
@@ -163,35 +163,35 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
         </form>
       </section>
       <section className="operation-panel">
-        <div className="operation-title"><div><h2><Wallet size={17}/> Saldo inicial do caixa</h2><p>Informe o dinheiro disponível no início do período de controle.</p></div></div>
+        <div className="operation-title"><div><h2><Wallet size={17}/> Saldo inicial do caixa</h2></div></div>
         <form action={updateFinancialOpeningBalance} className="operation-form">
           <label>Saldo inicial (R$)<input name="opening_balance" type="number" min="0" step="0.01" required defaultValue={(openingBalance / 100).toFixed(2)}/></label>
           <label>Mês de início do controle<input name="opening_balance_date" type="month" required defaultValue={openingMonth}/></label>
           <button className="operation-submit full-width" type="submit">Atualizar saldo inicial</button>
         </form>
-        <p className="operation-hint">O saldo acumulado considera o saldo inicial informado mais receitas e despesas efetivamente pagas a partir do primeiro dia do mês selecionado. Use o mês em que começa a conciliação do caixa para evitar duplicidade.</p>
+        <p className="operation-hint">O saldo considera as movimentações a partir do mês inicial selecionado.</p>
       </section>
     </section>
 
     <section className="operation-panel">
-      <div className="operation-title"><div><h2>Despesas operacionais pendentes</h2><p>Contas cadastradas fora das compras de estoque.</p></div></div>
+      <div className="operation-title"><div><h2>Despesas operacionais pendentes</h2></div></div>
       {expenseError ? <p className="operation-empty">Não foi possível carregar as despesas. Aplique a migration financeira.</p> : !expenses.filter(row => row.status === "prevista").length ? <p className="operation-empty">Nenhuma despesa operacional pendente.</p> : <div className="operation-table-wrap"><table className="operation-table"><thead><tr><th>Vencimento</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Situação</th><th>Ação</th></tr></thead><tbody>
         {expenses.filter(row => row.status === "prevista").map(row => <tr key={row.id}><td>{date(row.due_date)}</td><td>{row.description}</td><td>{row.category}</td><td><strong>{money(Number(row.amount_cents))}</strong></td><td><span className={`status-pill ${row.due_date < today ? "status-cancelado" : "status-a-pagar"}`}>{row.due_date < today ? "Vencida" : "A pagar"}</span></td><td><form action={markFinancialExpensePaid} className="cashflow-pay-form"><input type="hidden" name="expense_id" value={row.id}/><input name="paid_at" type="date" defaultValue={today} aria-label="Data de pagamento"/><button className="operation-link" type="submit">Marcar paga</button></form></td></tr>)}
       </tbody></table></div>}
     </section>
 
     <section className="operation-panel">
-      <div className="operation-title"><div><h2>Parcelas de estoque pendentes</h2><p>Compras parceladas que ainda precisam ser quitadas.</p></div></div>
+      <div className="operation-title"><div><h2>Parcelas de estoque pendentes</h2></div></div>
       {!installments.filter(row => row.status === "prevista").length ? <p className="operation-empty">Nenhuma parcela de estoque pendente.</p> : <div className="operation-table-wrap"><table className="operation-table"><thead><tr><th>Competência</th><th>Produto</th><th>Parcela</th><th>Valor</th><th>Situação</th><th>Ação</th></tr></thead><tbody>
         {installments.filter(row => row.status === "prevista").map(row => <tr key={row.id}><td>{monthLabel(monthKey(row.due_date))}</td><td>{row.inventory_purchases?.[0]?.inventory_items?.[0]?.name ?? "Compra de estoque"}</td><td>{row.installment_number}/{row.inventory_purchases?.[0]?.installments ?? 1}</td><td><strong>{money(Number(row.amount_cents))}</strong></td><td><span className="status-pill status-a-pagar">{row.due_date < today ? "Vencida" : "A reservar"}</span></td><td><form action={markInventoryInstallmentPaid}><input type="hidden" name="installment_id" value={row.id}/><button className="operation-link" type="submit">Marcar como paga</button></form></td></tr>)}
       </tbody></table></div>}
     </section>
     <section className="operation-panel">
-      <div className="operation-title"><div><h2>Histórico recente de movimentações</h2><p>Últimos recebimentos e lançamentos de despesas. O histórico mensal acima é integral e não depende deste limite de exibição.</p></div></div>
+      <div className="operation-title"><div><h2>Histórico recente de movimentações</h2></div></div>
       {!recent.length ? <p className="operation-empty">Nenhuma movimentação registrada.</p> : <div className="operation-table-wrap"><table className="operation-table"><thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Categoria / referência</th><th>Valor</th><th>Situação</th></tr></thead><tbody>
         {recent.map(row => <tr key={`${row.kind}-${row.id}`}><td>{date(row.date)}</td><td>{row.kind}</td><td>{row.detail}</td><td>{row.category}</td><td><strong>{money(row.amount)}</strong></td><td>{row.status}</td></tr>)}
       </tbody></table></div>}
     </section>
-    <p className="operation-hint">Receitas são contabilizadas pela data do recebimento. Despesas pagas entram no caixa pela data efetiva do pagamento; compromissos pendentes permanecem no planejamento até a quitação. O saldo de caixa é uma estimativa gerencial e deve ser conciliado com bancos e dinheiro físico.</p>
+    <p className="operation-hint">Receitas entram pela data do recebimento; despesas, pela data do pagamento. Concilie o saldo com bancos e dinheiro físico.</p>
   </main>;
 }

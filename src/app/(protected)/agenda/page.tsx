@@ -1,12 +1,12 @@
 import { CalendarDays, CircleDollarSign, FileCheck2, FileUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { registerEventPayment, uploadSignedEventContract, updateEventStatus } from "@/actions/operations";
+import { createEvent, registerEventPayment, uploadSignedEventContract, updateEventStatus } from "@/actions/operations";
 
 const money = (c: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(c / 100);
 const date = (value: string) => new Date(`${value}T12:00:00`).toLocaleDateString("pt-BR");
 
-type SearchParams = Promise<{ status?: string; periodo?: string; payment?: string; signed?: string }>;
+type SearchParams = Promise<{ status?: string; periodo?: string; payment?: string; signed?: string; created?: string }>;
 
 export default async function AgendaPage({ searchParams }: { searchParams: SearchParams }) {
   const filters = await searchParams;
@@ -50,9 +50,34 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
   return (
     <main className="content">
       <div className="page-heading"><div>
-        <div className="eyebrow">Operação</div><h1>Agenda</h1>
-        <p>Acompanhe eventos, contratos assinados e pagamentos recebidos.</p>
+        <h1>Agenda</h1>
+        
       </div></div>
+
+      {filters.created === "1" && <p className="operation-success">Evento criado na agenda.</p>}
+      <details className="operation-panel agenda-create-event">
+        <summary className="agenda-create-summary">+ Adicionar evento sem contrato</summary>
+        <form action={createEvent} className="operation-form agenda-create-form">
+          <label>Cliente / parceiro<input name="client_name" required placeholder="Nome do parceiro ou responsável"/></label>
+          <label>Tipo de evento<input name="package_name" required defaultValue="Parceria"/></label>
+          <label>Data<input name="event_date" type="date" required defaultValue={today}/></label>
+          <label>Horário<input name="event_time" type="time"/></label>
+          <label>Horário do brinde<input name="toast_time" type="time"/></label>
+          <label>Local<input name="venue" required placeholder="Local do evento"/></label>
+          <label>Valor combinado (R$)<input name="total" type="number" min="0" step="0.01" defaultValue="0"/></label>
+          <label>Entrada (R$)<input name="deposit" type="number" min="0" step="0.01" defaultValue="0"/></label>
+          <label>Deslocamento (R$)<input name="travel" type="number" min="0" step="0.01" defaultValue="0"/></label>
+          <label>Mesas<input name="tables" type="number" min="0" step="1" defaultValue="0"/></label>
+          <label>Taças<input name="glasses" type="number" min="0" step="1" defaultValue="0"/></label>
+          <label>Pares de fogos<input name="fireworks" type="number" min="0" step="1" defaultValue="0"/></label>
+          <label>Sparkles<input name="sparkles" type="number" min="0" step="1" defaultValue="0"/></label>
+          <label>Champanhe<input name="champagne" type="number" min="0" step="1" defaultValue="0"/></label>
+          <label>Status do evento<select name="status" defaultValue="Confirmado"><option value="Confirmado">Confirmado</option><option value="A pagar">A pagar</option></select></label>
+          <label>Contato do cerimonial<input name="ceremony_contact"/></label>
+          <label>Indicação<input name="referral"/></label>
+          <button className="operation-submit full-width" type="submit">Salvar evento</button>
+        </form>
+      </details>
 
       <section className="agenda-finance-summary">
         <article><span>Eventos exibidos</span><strong>{rows.length}</strong></article>
@@ -63,7 +88,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
       <section className="operation-panel">
         <div className="operation-title">
           <div><h2><CalendarDays size={17} /> Eventos</h2>
-            <p>Contrato e situação financeira são acompanhados separadamente.</p></div>
+            </div>
           <form className="agenda-filters" method="get">
             <select name="periodo" defaultValue={period} aria-label="Período">
               <option value="futuros">Próximos eventos</option><option value="todos">Todos os eventos</option>
@@ -84,8 +109,8 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
           <div className="operation-table-wrap">
             <table className="operation-table agenda-table">
               <thead><tr>
-                <th>Data / hora</th><th>Cliente</th><th>Local</th><th>Pacote</th>
-                <th>Valor contratado</th><th>Recebido</th><th>Saldo</th><th>Status financeiro</th>
+                <th>Data / hora</th><th>Cliente / parceiro</th><th>Local</th><th>Tipo de evento</th>
+                <th>Valor previsto</th><th>Recebido</th><th>Saldo</th><th>Status financeiro</th>
                 <th>Execução do evento</th><th>Contrato assinado</th><th>Registrar pagamento</th>
               </tr></thead>
               <tbody>{rows.map((event) => (
@@ -107,7 +132,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
                   <td>{money(Number(event.total_cents))}<small>Entrada prevista: {money(Number(event.deposit_cents))}</small></td>
                   <td>{money(event.received)}<small>{event.payments.length} lançamento(s)</small></td>
                   <td><strong>{money(event.outstanding)}</strong></td>
-                  <td><span className={`status-pill status-${(event.payment_status || "A pagar").toLowerCase().replaceAll(" ", "-")}`}>{event.payment_status || "A pagar"}</span></td>
+                  <td>{Number(event.total_cents) === 0 ? <span className="status-pill">Sem cobrança</span> : <span className={`status-pill status-${(event.payment_status || "A pagar").toLowerCase().replaceAll(" ", "-")}`}>{event.payment_status || "A pagar"}</span>}</td>
                   <td>
                     <form action={updateEventStatus} className="payment-form">
                       <input type="hidden" name="event_id" value={event.id}/>
@@ -138,7 +163,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
                       </form>
                     </details>
                   </td>
-                  <td>{event.outstanding > 0 ? (
+                  <td>{Number(event.total_cents) === 0 ? <span>—</span> : event.outstanding > 0 ? (
                     <details className="payment-details">
                       <summary><CircleDollarSign size={14}/> Lançar recebimento</summary>
                       <form action={registerEventPayment} className="payment-form">
