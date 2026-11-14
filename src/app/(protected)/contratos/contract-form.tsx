@@ -7,7 +7,7 @@ import { generateContractAction, type ContractActionResult } from "@/actions/con
 type InitialData = {
   clientId?: string; client?: string; cpf?: string; rg?: string; phone?: string; email?: string;
   address?: string; neighborhood?: string; city?: string; eventDate?: string; eventTime?: string;
-  toastTime?: string; venue?: string;
+  toastTime?: string; venue?: string; packageName?: string; additionalRequests?: string;
 };
 type FieldProps = { label: string; name: string; type?: string; required?: boolean; defaultValue?: string | number; min?: string; step?: string };
 
@@ -103,7 +103,7 @@ function MoneyField({ label, name, cents, onChange }: { label: string; name: str
 export function ContractForm({ initialData = {} }: { initialData?: InitialData }) {
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<ContractActionResult | null>(null);
-  const [packageName, setPackageName] = useState("");
+  const [packageName, setPackageName] = useState(initialData.packageName || "");
   const [travelCents, setTravelCents] = useState(0);
   const [depositCents, setDepositCents] = useState(0);
   const [depositEdited, setDepositEdited] = useState(false);
@@ -120,6 +120,7 @@ export function ContractForm({ initialData = {} }: { initialData?: InitialData }
   return <form action={submit} className="contract-form">
     {initialData.clientId && <input type="hidden" name="clientId" value={initialData.clientId}/>}
     {initialData.clientId && <div className="contract-notice"><strong>Cadastro pré-preenchido a partir da solicitação do cliente.</strong> Revise os dados e complete as condições comerciais antes de gerar o contrato.</div>}
+    {initialData.additionalRequests && <div className="contract-notice"><strong>Adicionais/comentários solicitados pelo cliente:</strong> {initialData.additionalRequests}</div>}
     <section className="contract-panel"><h2>Evento</h2><div className="contract-grid">
       <Field label="Data do evento" name="eventDate" type="date" required defaultValue={initialData.eventDate || ""}/>
       <Field label="Horário do evento" name="eventTime" type="time" required defaultValue={initialData.eventTime || ""}/>

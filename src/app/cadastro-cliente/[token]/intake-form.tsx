@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { submitClientIntake } from "@/actions/operations";
+import { useEffect, useState } from "react";
+import { submitClientIntake, submitPublicClientIntake } from "@/actions/operations";
 
 function maskCpf(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -28,36 +28,21 @@ function validCpf(value: string) {
   return digit(cpf.slice(0, 9), 10) === Number(cpf[9]) && digit(cpf.slice(0, 10), 11) === Number(cpf[10]);
 }
 
-function formatDateBr(value: string) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)}` : value;
-}
-function dateBrToIso(value: string) {
-  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
-  if (!match) return "";
-  const [, day, month, year] = match;
-  const date = new Date(Number(year), Number(month) - 1, Number(day));
-  return date.getFullYear() === Number(year) && date.getMonth() === Number(month) - 1 && date.getDate() === Number(day)
-    ? `${year}-${month}-${day}` : "";
-}
 function DateTimeInput({ label, name, type, required = false, defaultValue = "" }: {
   label: string; name: string; type: "date" | "time"; required?: boolean; defaultValue?: string;
 }) {
-  const [value, setValue] = useState(() => type === "date" ? formatDateBr(defaultValue) : defaultValue);
-  const isDate = type === "date";
-  const isoDate = isDate ? dateBrToIso(value) : "";
-  const validTime = !isDate && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
-  function update(raw: string) {
-    const digits = raw.replace(/\D/g, "").slice(0, isDate ? 8 : 4);
-    setValue(isDate
-      ? digits.length > 4 ? `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
-        : digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits
-      : digits.length > 2 ? `${digits.slice(0, 2)}:${digits.slice(2)}` : digits);
-  }
-  return <label>{label}<input type="text" inputMode="numeric" value={value} onChange={event => update(event.target.value)}
-    placeholder={isDate ? "DD/MM/AAAA" : "HH:MM"} maxLength={isDate ? 10 : 5} required={required}
-    pattern={isDate ? "[0-9]{2}/[0-9]{2}/[0-9]{4}" : "(?:[01][0-9]|2[0-3]):[0-5][0-9]"}
-    title={isDate ? "Use o formato DD/MM/AAAA." : "Use o formato 24 horas HH:MM."}/>
-    <input type="hidden" name={name} value={isDate ? isoDate : validTime ? value : ""}/>
+  return <label>{label}
+    <input
+      type={type}
+      name={name}
+      required={required}
+      defaultValue={defaultValue}
+      lang="pt-BR"
+      step={type === "date" ? 1 : 60}
+      autoComplete="off"
+      aria-label={label}
+    />
+    <small>{type === "date" ? "Selecione a data no calendário." : "Selecione ou digite o horário no formato 24 horas."}</small>
   </label>;
 }
 
@@ -65,10 +50,12 @@ function capitalizeWords(value: string) {
   return value.toLocaleLowerCase("pt-BR").replace(/(^|\s|[-'])\p{L}/gu, (match) => match.toLocaleUpperCase("pt-BR"));
 }
 
-export function IntakeForm({ token, defaults = {} }: { token: string; defaults?: Record<string, string> }) {
+export function IntakeForm({ token, defaults = {} }: { token?: string; defaults?: Record<string, string> }) {
   const [cpf, setCpf] = useState(maskCpf(defaults.cpf || ""));
   const [phone, setPhone] = useState(maskPhone(defaults.phone || ""));
   const [cpfError, setCpfError] = useState("");
+  const [startedAt, setStartedAt] = useState("");
+  useEffect(() => { setStartedAt(Date.now().toString()); }, []);
   function checkCpf() {
     const valid = validCpf(cpf);
     setCpfError(valid ? "" : "Informe um CPF válido.");
@@ -80,10 +67,12 @@ export function IntakeForm({ token, defaults = {} }: { token: string; defaults?:
       input.value = capitalizeWords(input.value);
     }
   }
-  return <form action={submitClientIntake} className="operation-form" onSubmit={(event) => {
+  return <form action={token ? submitClientIntake : submitPublicClientIntake} className="operation-form" onSubmit={(event) => {
     if (!checkCpf()) { event.preventDefault(); }
   }}>
-    <input type="hidden" name="token" value={token}/>
+    {token && <input type="hidden" name="token" value={token}/>}
+    <input type="hidden" name="form_started_at" value={startedAt}/>
+    <label className="intake-honeypot" aria-hidden="true">Não preencha este campo<input name="company_website" tabIndex={-1} autoComplete="off"/></label>
     <label>Nome completo *<input name="full_name" required minLength={3} autoComplete="name" defaultValue={defaults.full_name || ""} onBlur={capitalize}/></label>
     <label>Celular / WhatsApp *<input name="phone" required autoComplete="tel" inputMode="numeric" maxLength={16} placeholder="(00) 9 0000-0000" value={phone} onChange={(event) => setPhone(maskPhone(event.target.value))}/></label>
     <label>E-mail *<input name="email" type="email" required autoComplete="email" inputMode="email" defaultValue={defaults.email || ""}/></label>
@@ -97,6 +86,18 @@ export function IntakeForm({ token, defaults = {} }: { token: string; defaults?:
     <DateTimeInput label="Horário do brinde" name="toast_time" type="time" defaultValue={defaults.toast_time || ""}/>
     <label>Local do evento *<input name="venue" required placeholder="Espaço ou endereço" defaultValue={defaults.venue || ""} onBlur={capitalize}/></label>
     <label>Cerimonial<input name="ceremony_contact" defaultValue={defaults.ceremony_contact || ""} onBlur={capitalize}/></label>
+    <label>Pacote de interesse
+      <select name="package_preference" defaultValue={defaults.package_preference || ""}>
+        <option value="">Ainda não sei / gostaria de orientação</option>
+        <option value="Essencial">Essencial</option>
+        <option value="Celebração">Celebração</option>
+        <option value="Luxo">Luxo</option>
+      </select>
+    </label>
+    <label className="full-width">Comentários ou adicionais desejados
+      <textarea name="additional_requests" rows={4} maxLength={1000} defaultValue={defaults.additional_requests || ""} placeholder="Descreva aqui algum adicional, preferência ou observação para o seu evento (opcional)."/>
+      <small>Campo opcional. A equipe Brindare avaliará sua solicitação.</small>
+    </label>
     <label>Indicação<input name="referral" placeholder="Como conheceu a Brindare?" defaultValue={defaults.referral || ""} onBlur={capitalize}/></label>
     <button className="operation-submit" type="submit">Enviar meus dados</button>
   </form>;

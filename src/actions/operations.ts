@@ -1,8 +1,9 @@
 "use server";
 
-import { randomBytes, createHash } from "node:crypto";
+import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -25,17 +26,67 @@ const validCpf = (value: string) => {
     digit(cpf.slice(0, 10), 11) === Number(cpf[10]);
 };
 
-export async function createClientIntakeLink() {
-  const { user } = await requireAdmin();
-  const supabase = await createClient();
-  const token = randomBytes(32).toString("base64url");
-  const { error } = await supabase.from("client_intakes").insert({
-    created_by: user.id, token_hash: hashToken(token),
-    expires_at: new Date(Date.now() + 14 * 86400000).toISOString(),
+function isValidIsoDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(value + "T00:00:00.000Z");
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
+function isValidTime(value: string) {
+  return /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
+
+export async function submitPublicClientIntake(form: FormData) {
+  const startedAt = Number(text(form, "form_started_at"));
+  if (text(form, "company_website") || !Number.isFinite(startedAt) || Date.now() - startedAt < 2000) {
+    redirect("/cadastro-enviado");
+  }
+
+  const payload = {
+    full_name: titleCase(text(form, "full_name")), phone: digits(text(form, "phone")),
+    email: text(form, "email").toLowerCase(), cpf: digits(text(form, "cpf")),
+    rg: text(form, "rg"), address: titleCase(text(form, "address")),
+    neighborhood: titleCase(text(form, "neighborhood")), city: titleCase(text(form, "city")),
+    event_date: text(form, "event_date"), event_time: text(form, "event_time"),
+    toast_time: text(form, "toast_time"), venue: titleCase(text(form, "venue")),
+    ceremony_contact: titleCase(text(form, "ceremony_contact")), referral: titleCase(text(form, "referral")),
+    package_preference: text(form, "package_preference"),
+    additional_requests: text(form, "additional_requests").slice(0, 1000),
+  };
+
+  if (!isValidIsoDate(payload.event_date)) redirect("/cadastro-cliente?error=date");
+  if (payload.package_preference && !["Essencial", "Celebração", "Luxo"].includes(payload.package_preference)) redirect("/cadastro-cliente?error=invalid");
+  if (!isValidTime(payload.event_time) || (payload.toast_time && !isValidTime(payload.toast_time))) {
+    redirect("/cadastro-cliente?error=time");
+  }
+  if (payload.full_name.length < 3 || !/^\d{11}$/.test(payload.phone) ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email) ||
+      !validCpf(payload.cpf) || !payload.address || !payload.venue) {
+    redirect("/cadastro-cliente?error=invalid");
+  }
+
+  const requestHeaders = await headers();
+  const ip = requestHeaders.get("cf-connecting-ip") ||
+    requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const ipHash = createHash("sha256").update(ip).digest("hex");
+  const admin = createAdminClient();
+  const { data: allowed, error: rateError } = await admin.rpc("consume_client_intake_rate_limit", {
+    p_ip_hash: ipHash,
   });
-  if (error) throw new Error("Não foi possível criar o link de cadastro.");
-  const base = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
-  redirect(`/clientes?link=${encodeURIComponent(`${base}/cadastro-cliente/${token}`)}`);
+  if (rateError || allowed !== true) redirect("/cadastro-cliente?error=rate");
+
+  const { error } = await admin.from("client_intakes").insert({
+    created_by: null,
+    token_hash: null,
+    expires_at: null,
+    status: "submitted",
+    payload,
+    submitted_at: new Date().toISOString(),
+  });
+  if (error) redirect("/cadastro-cliente?error=save");
+  revalidatePath("/clientes");
+  redirect("/cadastro-enviado");
 }
 
 export async function submitClientIntake(form: FormData) {
@@ -49,12 +100,18 @@ export async function submitClientIntake(form: FormData) {
     event_date: text(form, "event_date"), event_time: text(form, "event_time"),
     toast_time: text(form, "toast_time"), venue: titleCase(text(form, "venue")),
     ceremony_contact: titleCase(text(form, "ceremony_contact")), referral: titleCase(text(form, "referral")),
+    package_preference: text(form, "package_preference"),
+    additional_requests: text(form, "additional_requests").slice(0, 1000),
   };
+  if (!isValidIsoDate(payload.event_date)) redirect("/cadastro-cliente/" + token + "?error=date");
+  if (payload.package_preference && !["Essencial", "Celebração", "Luxo"].includes(payload.package_preference)) redirect("/cadastro-cliente/" + token + "?error=invalid");
+  if (!isValidTime(payload.event_time) || (payload.toast_time && !isValidTime(payload.toast_time))) {
+    redirect("/cadastro-cliente/" + token + "?error=time");
+  }
   if (payload.full_name.length < 3 || !/^\d{11}$/.test(payload.phone) ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email) ||
-      !validCpf(payload.cpf) || !payload.address || !payload.event_date ||
-      !/^\d{2}:\d{2}$/.test(payload.event_time) || !payload.venue) {
-    redirect(`/cadastro-cliente/${token}?error=invalid`);
+      !validCpf(payload.cpf) || !payload.address || !payload.venue) {
+    redirect("/cadastro-cliente/" + token + "?error=invalid");
   }
   const admin = createAdminClient();
   const { data: intake } = await admin.from("client_intakes").select("id,status,expires_at")
