@@ -24,7 +24,7 @@ export default async function ReviewClientPage({ params }: { params: Promise<{ i
         <label>Endereço *<input name="address" required defaultValue={p.address || ""}/></label>
         <label>Bairro<input name="neighborhood" defaultValue={p.neighborhood || ""}/></label>
         <label>Município<input name="city" defaultValue={p.city || ""}/></label>
-        <div className="intake-event-summary"><strong>Informações do evento enviadas</strong><span>Data: {p.event_date || "Não informada"} · Horário: {p.event_time || "Não informado"} · Brinde: {p.toast_time || "Não informado"}</span><span>Local: {p.venue || "Não informado"} · Cerimonial: {p.ceremony_contact || "Não informado"}</span><span>Indicação: {p.referral || "Não informada"}</span></div>
+        <div className="intake-event-summary"><strong>Informações do evento enviadas</strong><span>Data: {p.event_date || "Não informada"} · Horário: {p.event_time || "Não informado"} · Brinde: {p.toast_time || "Não informado"}</span><span>Local: {p.venue || "Não informado"} · Cerimonial: {p.ceremony_contact || "Não informado"}</span><span>Pacote de interesse: {p.package_preference || "Ainda não definido"}</span><span>Adicionais e comentários: {p.additional_requests || "Nenhum comentário informado"}</span><span>Indicação: {p.referral || "Não informada"}</span></div>
         <button className="operation-submit" type="submit">Finalizar cadastro e preparar contrato</button>
       </form>
     </section>

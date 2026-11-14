@@ -38,11 +38,11 @@ function DateTimeInput({ label, name, type, required = false, defaultValue = "" 
       required={required}
       defaultValue={defaultValue}
       lang="pt-BR"
-      step={60}
+      step={type === "date" ? 1 : 60}
       autoComplete="off"
       aria-label={label}
     />
-    <small>{type === "date" ? "Selecione a data no calendário." : "Selecione o horário no formato 24 horas."}</small>
+    <small>{type === "date" ? "Selecione a data no calendário." : "Selecione ou digite o horário no formato 24 horas."}</small>
   </label>;
 }
 
@@ -86,6 +86,18 @@ export function IntakeForm({ token, defaults = {} }: { token?: string; defaults?
     <DateTimeInput label="Horário do brinde" name="toast_time" type="time" defaultValue={defaults.toast_time || ""}/>
     <label>Local do evento *<input name="venue" required placeholder="Espaço ou endereço" defaultValue={defaults.venue || ""} onBlur={capitalize}/></label>
     <label>Cerimonial<input name="ceremony_contact" defaultValue={defaults.ceremony_contact || ""} onBlur={capitalize}/></label>
+    <label>Pacote de interesse
+      <select name="package_preference" defaultValue={defaults.package_preference || ""}>
+        <option value="">Ainda não sei / gostaria de orientação</option>
+        <option value="Essencial">Essencial</option>
+        <option value="Celebração">Celebração</option>
+        <option value="Luxo">Luxo</option>
+      </select>
+    </label>
+    <label className="full-width">Comentários ou adicionais desejados
+      <textarea name="additional_requests" rows={4} maxLength={1000} defaultValue={defaults.additional_requests || ""} placeholder="Descreva aqui algum adicional, preferência ou observação para o seu evento (opcional)."/>
+      <small>Campo opcional. A equipe Brindare avaliará sua solicitação.</small>
+    </label>
     <label>Indicação<input name="referral" placeholder="Como conheceu a Brindare?" defaultValue={defaults.referral || ""} onBlur={capitalize}/></label>
     <button className="operation-submit" type="submit">Enviar meus dados</button>
   </form>;

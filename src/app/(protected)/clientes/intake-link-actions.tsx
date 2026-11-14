@@ -8,14 +8,35 @@ export function IntakeLinkActions({ link }: { link: string }) {
   const [error, setError] = useState("");
 
   async function copyLink() {
+    const absoluteLink = new URL(link, window.location.origin).toString();
     try {
-      await navigator.clipboard.writeText(link);
+      if (navigator.clipboard?.writeText && window.isSecureContext) {
+        await navigator.clipboard.writeText(absoluteLink);
+      } else {
+        throw new Error("Clipboard API indisponível neste contexto.");
+      }
       setCopied(true);
       setError("");
       window.setTimeout(() => setCopied(false), 2500);
     } catch {
-      setCopied(false);
-      setError("Não foi possível copiar automaticamente. Selecione e copie o endereço acima.");
+      const fallback = document.createElement("textarea");
+      fallback.value = absoluteLink;
+      fallback.setAttribute("readonly", "");
+      fallback.style.position = "fixed";
+      fallback.style.opacity = "0";
+      document.body.appendChild(fallback);
+      fallback.select();
+      fallback.setSelectionRange(0, fallback.value.length);
+      const success = document.execCommand("copy");
+      document.body.removeChild(fallback);
+      if (success) {
+        setCopied(true);
+        setError("");
+        window.setTimeout(() => setCopied(false), 2500);
+      } else {
+        setCopied(false);
+        setError("Não foi possível copiar automaticamente. Selecione o endereço e copie manualmente.");
+      }
     }
   }
 
