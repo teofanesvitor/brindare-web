@@ -57,8 +57,8 @@ export async function submitPublicClientIntake(form: FormData) {
   if (!isValidTime(payload.event_time) || (payload.toast_time && !isValidTime(payload.toast_time))) {
     redirect("/cadastro-cliente?error=time");
   }
-  if (payload.full_name.length < 3 || !/^\\d{11}$/.test(payload.phone) ||
-      !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(payload.email) ||
+  if (payload.full_name.length < 3 || !/^\d{11}$/.test(payload.phone) ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email) ||
       !validCpf(payload.cpf) || !payload.address || !payload.venue) {
     redirect("/cadastro-cliente?error=invalid");
   }
