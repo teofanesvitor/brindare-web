@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { submitClientIntake, submitPublicClientIntake } from "@/actions/operations";
 
 function maskCpf(value: string) {
@@ -54,7 +54,8 @@ export function IntakeForm({ token, defaults = {} }: { token?: string; defaults?
   const [cpf, setCpf] = useState(maskCpf(defaults.cpf || ""));
   const [phone, setPhone] = useState(maskPhone(defaults.phone || ""));
   const [cpfError, setCpfError] = useState("");
-  const [startedAt] = useState(() => Date.now().toString());
+  const [startedAt, setStartedAt] = useState("");
+  useEffect(() => { setStartedAt(Date.now().toString()); }, []);
   function checkCpf() {
     const valid = validCpf(cpf);
     setCpfError(valid ? "" : "Informe um CPF válido.");
