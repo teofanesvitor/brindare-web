@@ -199,3 +199,7 @@
 .agenda-create-form{padding:18px}
 .agenda-create-form .operation-submit{height:42px;border:0;border-radius:8px;background:var(--ink);color:#fff;font-weight:700;cursor:pointer}
 @media(max-width:640px){.agenda-create-form{grid-template-columns:1fr}}
+
+
+/* Campo invisível usado como honeypot anti-spam no formulário público. */
+.intake-honeypot{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
