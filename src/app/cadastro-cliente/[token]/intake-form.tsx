@@ -38,7 +38,7 @@ function DateTimeInput({ label, name, type, required = false, defaultValue = "" 
       required={required}
       defaultValue={defaultValue}
       lang="pt-BR"
-      step={60}
+      step={type === "date" ? 1 : 60}
       autoComplete="off"
       aria-label={label}
     />
