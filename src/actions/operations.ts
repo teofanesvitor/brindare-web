@@ -3,6 +3,7 @@
 import { randomBytes, createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -46,6 +47,56 @@ function isValidIsoDate(value: string) {
 
 function isValidTime(value: string) {
   return /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
+
+export async function submitPublicClientIntake(form: FormData) {
+  const startedAt = Number(text(form, "form_started_at"));
+  if (text(form, "company_website") || !Number.isFinite(startedAt) || Date.now() - startedAt < 2000) {
+    redirect("/cadastro-enviado");
+  }
+
+  const payload = {
+    full_name: titleCase(text(form, "full_name")), phone: digits(text(form, "phone")),
+    email: text(form, "email").toLowerCase(), cpf: digits(text(form, "cpf")),
+    rg: text(form, "rg"), address: titleCase(text(form, "address")),
+    neighborhood: titleCase(text(form, "neighborhood")), city: titleCase(text(form, "city")),
+    event_date: text(form, "event_date"), event_time: text(form, "event_time"),
+    toast_time: text(form, "toast_time"), venue: titleCase(text(form, "venue")),
+    ceremony_contact: titleCase(text(form, "ceremony_contact")), referral: titleCase(text(form, "referral")),
+  };
+
+  if (!isValidIsoDate(payload.event_date)) redirect("/cadastro-cliente?error=date");
+  if (!isValidTime(payload.event_time) || (payload.toast_time && !isValidTime(payload.toast_time))) {
+    redirect("/cadastro-cliente?error=time");
+  }
+  if (payload.full_name.length < 3 || !/^\\d{11}$/.test(payload.phone) ||
+      !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(payload.email) ||
+      !validCpf(payload.cpf) || !payload.address || !payload.venue) {
+    redirect("/cadastro-cliente?error=invalid");
+  }
+
+  const requestHeaders = await headers();
+  const ip = requestHeaders.get("cf-connecting-ip") ||
+    requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const ipHash = createHash("sha256").update(ip).digest("hex");
+  const admin = createAdminClient();
+  const { data: allowed, error: rateError } = await admin.rpc("consume_client_intake_rate_limit", {
+    p_ip_hash: ipHash,
+  });
+  if (rateError || allowed !== true) redirect("/cadastro-cliente?error=rate");
+
+  const { error } = await admin.from("client_intakes").insert({
+    created_by: null,
+    token_hash: null,
+    expires_at: null,
+    status: "submitted",
+    payload,
+    submitted_at: new Date().toISOString(),
+  });
+  if (error) redirect("/cadastro-cliente?error=save");
+  revalidatePath("/clientes");
+  redirect("/cadastro-enviado");
 }
 
 export async function submitClientIntake(form: FormData) {
