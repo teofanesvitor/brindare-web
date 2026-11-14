@@ -38,6 +38,16 @@ export async function createClientIntakeLink() {
   redirect(`/clientes?link=${encodeURIComponent(`${base}/cadastro-cliente/${token}`)}`);
 }
 
+function isValidIsoDate(value: string) {
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
+function isValidTime(value: string) {
+  return /^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(value);
+}
+
 export async function submitClientIntake(form: FormData) {
   const token = text(form, "token");
   if (!/^[A-Za-z0-9_-]{40,60}$/.test(token)) redirect("/cadastro-invalido");
