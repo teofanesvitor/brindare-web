@@ -31,18 +31,28 @@ function validCpf(value: string) {
 function DateTimeInput({ label, name, type, required = false, defaultValue = "" }: {
   label: string; name: string; type: "date" | "time"; required?: boolean; defaultValue?: string;
 }) {
+  function formatTime(event: React.ChangeEvent<HTMLInputElement>) {
+    const digits = event.target.value.replace(/\\D/g, "").slice(0, 4);
+    event.target.value = digits.length > 2 ? `${digits.slice(0, 2)}:${digits.slice(2)}` : digits;
+  }
+
   return <label>{label}
     <input
-      type={type}
+      type={type === "date" ? "date" : "text"}
       name={name}
       required={required}
       defaultValue={defaultValue}
       lang="pt-BR"
-      step={type === "date" ? 1 : 60}
+      step={type === "date" ? 1 : undefined}
+      inputMode={type === "time" ? "numeric" : undefined}
+      maxLength={type === "time" ? 5 : undefined}
+      pattern={type === "time" ? "(?:[01]\\d|2[0-3]):[0-5]\\d" : undefined}
+      placeholder={type === "time" ? "HH:MM" : undefined}
+      onChange={type === "time" ? formatTime : undefined}
       autoComplete="off"
       aria-label={label}
     />
-    <small>{type === "date" ? "Selecione a data no calendário." : "Selecione o horário no formato 24 horas."}</small>
+    <small>{type === "date" ? "Selecione a data no calendário." : "Digite no formato 24 horas (HH:MM)."}</small>
   </label>;
 }
 
