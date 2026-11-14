@@ -8,6 +8,8 @@ export default async function PublicClientIntakePage({ params, searchParams }: {
   const { error } = await searchParams;
   const messages: Record<string, string> = {
     invalid: "Confira os campos obrigatórios e o CPF informado.",
+    date: "A data do evento não é válida. Selecione uma data no calendário.",
+    time: "O horário informado não é válido. Selecione um horário entre 00:00 e 23:59.",
     cpf: "O CPF informado não é válido.",
     save: "Não foi possível enviar seus dados. Tente novamente.",
   };
