@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { submitClientIntake } from "@/actions/operations";
+import { submitClientIntake, submitPublicClientIntake } from "@/actions/operations";
 
 function maskCpf(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -50,10 +50,11 @@ function capitalizeWords(value: string) {
   return value.toLocaleLowerCase("pt-BR").replace(/(^|\s|[-'])\p{L}/gu, (match) => match.toLocaleUpperCase("pt-BR"));
 }
 
-export function IntakeForm({ token, defaults = {} }: { token: string; defaults?: Record<string, string> }) {
+export function IntakeForm({ token, defaults = {} }: { token?: string; defaults?: Record<string, string> }) {
   const [cpf, setCpf] = useState(maskCpf(defaults.cpf || ""));
   const [phone, setPhone] = useState(maskPhone(defaults.phone || ""));
   const [cpfError, setCpfError] = useState("");
+  const [startedAt] = useState(() => Date.now().toString());
   function checkCpf() {
     const valid = validCpf(cpf);
     setCpfError(valid ? "" : "Informe um CPF válido.");
@@ -65,10 +66,12 @@ export function IntakeForm({ token, defaults = {} }: { token: string; defaults?:
       input.value = capitalizeWords(input.value);
     }
   }
-  return <form action={submitClientIntake} className="operation-form" onSubmit={(event) => {
+  return <form action={token ? submitClientIntake : submitPublicClientIntake} className="operation-form" onSubmit={(event) => {
     if (!checkCpf()) { event.preventDefault(); }
   }}>
-    <input type="hidden" name="token" value={token}/>
+    {token && <input type="hidden" name="token" value={token}/>}
+    <input type="hidden" name="form_started_at" value={startedAt}/>
+    <label className="intake-honeypot" aria-hidden="true">Não preencha este campo<input name="company_website" tabIndex={-1} autoComplete="off"/></label>
     <label>Nome completo *<input name="full_name" required minLength={3} autoComplete="name" defaultValue={defaults.full_name || ""} onBlur={capitalize}/></label>
     <label>Celular / WhatsApp *<input name="phone" required autoComplete="tel" inputMode="numeric" maxLength={16} placeholder="(00) 9 0000-0000" value={phone} onChange={(event) => setPhone(maskPhone(event.target.value))}/></label>
     <label>E-mail *<input name="email" type="email" required autoComplete="email" inputMode="email" defaultValue={defaults.email || ""}/></label>
