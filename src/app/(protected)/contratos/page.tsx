@@ -21,6 +21,8 @@ export default async function ContratosPage({ searchParams }: { searchParams: Pr
     phone: client.phone || "", email: client.email || "", address: client.address || "",
     neighborhood: client.neighborhood || "", city: client.city || "",
     eventDate: eventDetails.event_date || "", eventTime: eventDetails.event_time || "", toastTime: eventDetails.toast_time || "", venue: eventDetails.venue || "",
+    packageName: intakeDetails.package_preference || "",
+    additionalRequests: intakeDetails.additional_requests || "",
   } : undefined;
   const history = await Promise.all((contracts || []).map(async (item) => {
     if (!item.docx_path) return { ...item, docxUrl: null };
