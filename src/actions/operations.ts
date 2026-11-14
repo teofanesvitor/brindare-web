@@ -1,6 +1,6 @@
 "use server";
 
-import { randomBytes, createHash } from "node:crypto";
+import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
@@ -25,19 +25,6 @@ const validCpf = (value: string) => {
   return digit(cpf.slice(0, 9), 10) === Number(cpf[9]) &&
     digit(cpf.slice(0, 10), 11) === Number(cpf[10]);
 };
-
-export async function createClientIntakeLink() {
-  const { user } = await requireAdmin();
-  const supabase = await createClient();
-  const token = randomBytes(32).toString("base64url");
-  const { error } = await supabase.from("client_intakes").insert({
-    created_by: user.id, token_hash: hashToken(token),
-    expires_at: new Date(Date.now() + 14 * 86400000).toISOString(),
-  });
-  if (error) throw new Error("Não foi possível criar o link de cadastro.");
-  const base = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
-  redirect(`/clientes?link=${encodeURIComponent(`${base}/cadastro-cliente/${token}`)}`);
-}
 
 function isValidIsoDate(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
