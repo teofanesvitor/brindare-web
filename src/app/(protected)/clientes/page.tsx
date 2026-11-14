@@ -8,7 +8,7 @@ export default async function ClientesPage() {
   const { data: intakes, error } = await supabase.from("client_intakes")
     .select("id,status,payload,created_at,submitted_at,expires_at")
     .order("created_at", { ascending: false }).limit(50);
-  const base = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\\/$/, "");
+  const base = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/+$/, "");
   const permanentLink = base + "/cadastro-cliente";
 
   return <main className="content">
