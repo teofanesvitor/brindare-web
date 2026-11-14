@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { Bell, Link2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { IntakeLinkActions } from "./intake-link-actions";
@@ -8,8 +9,13 @@ export default async function ClientesPage() {
   const { data: intakes, error } = await supabase.from("client_intakes")
     .select("id,status,payload,created_at,submitted_at,expires_at")
     .order("created_at", { ascending: false }).limit(50);
-  const base = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/+$/, "");
-  const permanentLink = base + "/cadastro-cliente";
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host");
+  const forwardedProtocol = requestHeaders.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const protocol = forwardedProtocol || (process.env.NODE_ENV === "development" ? "http" : "https");
+  const configuredBase = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  const base = (configuredBase || (host ? `${protocol}://${host}` : "")).replace(/\/+$/, "");
+  const permanentLink = base ? base + "/cadastro-cliente" : "/cadastro-cliente";
 
   return <main className="content">
     <div className="page-heading"><div><h1>Clientes</h1></div></div>
