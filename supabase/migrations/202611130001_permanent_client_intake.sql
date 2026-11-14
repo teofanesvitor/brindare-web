@@ -13,6 +13,7 @@ create table if not exists public.client_intake_rate_limits (
   updated_at timestamptz not null default now()
 );
 alter table public.client_intake_rate_limits enable row level security;
+create index if not exists client_intake_rate_limits_updated_idx on public.client_intake_rate_limits(updated_at);
 
 create or replace function public.consume_client_intake_rate_limit(p_ip_hash text)
 returns boolean
@@ -23,6 +24,8 @@ as $$
 declare
   v_count integer;
 begin
+  delete from public.client_intake_rate_limits where updated_at < now() - interval '2 days';
+
   if p_ip_hash is null or length(p_ip_hash) <> 64 then
     return false;
   end if;
