@@ -39,13 +39,13 @@ export async function createClientIntakeLink() {
 }
 
 function isValidIsoDate(value: string) {
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;
-  const parsed = new Date(`${value}T00:00:00.000Z`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(value + "T00:00:00.000Z");
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
 function isValidTime(value: string) {
-  return /^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(value);
+  return /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
 }
 
 export async function submitClientIntake(form: FormData) {
@@ -60,11 +60,14 @@ export async function submitClientIntake(form: FormData) {
     toast_time: text(form, "toast_time"), venue: titleCase(text(form, "venue")),
     ceremony_contact: titleCase(text(form, "ceremony_contact")), referral: titleCase(text(form, "referral")),
   };
+  if (!isValidIsoDate(payload.event_date)) redirect("/cadastro-cliente/" + token + "?error=date");
+  if (!isValidTime(payload.event_time) || (payload.toast_time && !isValidTime(payload.toast_time))) {
+    redirect("/cadastro-cliente/" + token + "?error=time");
+  }
   if (payload.full_name.length < 3 || !/^\d{11}$/.test(payload.phone) ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email) ||
-      !validCpf(payload.cpf) || !payload.address || !payload.event_date ||
-      !/^\d{2}:\d{2}$/.test(payload.event_time) || !payload.venue) {
-    redirect(`/cadastro-cliente/${token}?error=invalid`);
+      !validCpf(payload.cpf) || !payload.address || !payload.venue) {
+    redirect("/cadastro-cliente/" + token + "?error=invalid");
   }
   const admin = createAdminClient();
   const { data: intake } = await admin.from("client_intakes").select("id,status,expires_at")
