@@ -28,36 +28,21 @@ function validCpf(value: string) {
   return digit(cpf.slice(0, 9), 10) === Number(cpf[9]) && digit(cpf.slice(0, 10), 11) === Number(cpf[10]);
 }
 
-function formatDateBr(value: string) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)}` : value;
-}
-function dateBrToIso(value: string) {
-  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
-  if (!match) return "";
-  const [, day, month, year] = match;
-  const date = new Date(Number(year), Number(month) - 1, Number(day));
-  return date.getFullYear() === Number(year) && date.getMonth() === Number(month) - 1 && date.getDate() === Number(day)
-    ? `${year}-${month}-${day}` : "";
-}
 function DateTimeInput({ label, name, type, required = false, defaultValue = "" }: {
   label: string; name: string; type: "date" | "time"; required?: boolean; defaultValue?: string;
 }) {
-  const [value, setValue] = useState(() => type === "date" ? formatDateBr(defaultValue) : defaultValue);
-  const isDate = type === "date";
-  const isoDate = isDate ? dateBrToIso(value) : "";
-  const validTime = !isDate && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
-  function update(raw: string) {
-    const digits = raw.replace(/\D/g, "").slice(0, isDate ? 8 : 4);
-    setValue(isDate
-      ? digits.length > 4 ? `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
-        : digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits
-      : digits.length > 2 ? `${digits.slice(0, 2)}:${digits.slice(2)}` : digits);
-  }
-  return <label>{label}<input type="text" inputMode="numeric" value={value} onChange={event => update(event.target.value)}
-    placeholder={isDate ? "DD/MM/AAAA" : "HH:MM"} maxLength={isDate ? 10 : 5} required={required}
-    pattern={isDate ? "[0-9]{2}/[0-9]{2}/[0-9]{4}" : "(?:[01][0-9]|2[0-3]):[0-5][0-9]"}
-    title={isDate ? "Use o formato DD/MM/AAAA." : "Use o formato 24 horas HH:MM."}/>
-    <input type="hidden" name={name} value={isDate ? isoDate : validTime ? value : ""}/>
+  return <label>{label}
+    <input
+      type={type}
+      name={name}
+      required={required}
+      defaultValue={defaultValue}
+      lang="pt-BR"
+      step={60}
+      autoComplete="off"
+      aria-label={label}
+    />
+    <small>{type === "date" ? "Selecione a data no calendário." : "Selecione o horário no formato 24 horas."}</small>
   </label>;
 }
 
