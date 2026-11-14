@@ -51,9 +51,12 @@ export async function submitPublicClientIntake(form: FormData) {
     event_date: text(form, "event_date"), event_time: text(form, "event_time"),
     toast_time: text(form, "toast_time"), venue: titleCase(text(form, "venue")),
     ceremony_contact: titleCase(text(form, "ceremony_contact")), referral: titleCase(text(form, "referral")),
+    package_preference: text(form, "package_preference"),
+    additional_requests: text(form, "additional_requests").slice(0, 1000),
   };
 
   if (!isValidIsoDate(payload.event_date)) redirect("/cadastro-cliente?error=date");
+  if (payload.package_preference && !["Essencial", "Celebração", "Luxo"].includes(payload.package_preference)) redirect("/cadastro-cliente?error=invalid");
   if (!isValidTime(payload.event_time) || (payload.toast_time && !isValidTime(payload.toast_time))) {
     redirect("/cadastro-cliente?error=time");
   }
@@ -97,8 +100,11 @@ export async function submitClientIntake(form: FormData) {
     event_date: text(form, "event_date"), event_time: text(form, "event_time"),
     toast_time: text(form, "toast_time"), venue: titleCase(text(form, "venue")),
     ceremony_contact: titleCase(text(form, "ceremony_contact")), referral: titleCase(text(form, "referral")),
+    package_preference: text(form, "package_preference"),
+    additional_requests: text(form, "additional_requests").slice(0, 1000),
   };
   if (!isValidIsoDate(payload.event_date)) redirect("/cadastro-cliente/" + token + "?error=date");
+  if (payload.package_preference && !["Essencial", "Celebração", "Luxo"].includes(payload.package_preference)) redirect("/cadastro-cliente/" + token + "?error=invalid");
   if (!isValidTime(payload.event_time) || (payload.toast_time && !isValidTime(payload.toast_time))) {
     redirect("/cadastro-cliente/" + token + "?error=time");
   }
