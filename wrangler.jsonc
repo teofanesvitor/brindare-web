@@ -5,6 +5,10 @@
   "compatibility_date": "2026-11-06",
   "compatibility_flags": ["nodejs_compat"],
   "upload_source_maps": true,
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://krmgnfgqaadmhbtluswv.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_ww3DJ6GR4Sc1hLcBhrqbDQ_8V604TIU"
+  },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
