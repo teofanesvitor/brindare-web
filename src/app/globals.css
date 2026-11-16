@@ -203,3 +203,20 @@
 
 /* Campo invisível usado como honeypot anti-spam no formulário público. */
 .intake-honeypot{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+
+
+/* Lista compacta de próximos eventos no painel */
+.upcoming-event-list{display:grid;margin-top:12px}
+.upcoming-event-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 2px;border-bottom:1px solid var(--line);text-decoration:none;color:inherit;min-width:0;transition:background .15s ease,padding .15s ease}
+.upcoming-event-row:last-child{border-bottom:0;padding-bottom:2px}
+.upcoming-event-row:hover{background:#fcfaf4;padding-left:8px;padding-right:8px;border-radius:8px}
+.upcoming-event-main{display:grid;gap:4px;min-width:0}
+.upcoming-event-main strong{font-size:14px;font-weight:700;line-height:1.35;overflow-wrap:anywhere}
+.upcoming-event-main time{font-size:12px;color:var(--muted);font-weight:500}
+.upcoming-event-status{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;min-width:82px;padding:6px 10px;border-radius:999px;font-size:10px;font-weight:700;white-space:nowrap}
+.upcoming-event-status.is-pending{background:#fff5d9;color:#806614}
+.upcoming-event-status.is-confirmed{background:#edf4ff;color:#365f91}
+.upcoming-event-status.is-complete{background:#edf7ef;color:#347044}
+.upcoming-event-status.is-cancelled{background:#fff0ed;color:#963b2d}
+.upcoming-event-row:focus-visible{outline:2px solid var(--brand-dark);outline-offset:3px;border-radius:8px}
+@media(max-width:640px){.upcoming-event-row{padding:13px 0}.upcoming-event-main strong{font-size:13px}.upcoming-event-status{min-width:76px;padding:6px 8px}}
