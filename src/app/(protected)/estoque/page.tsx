@@ -1,6 +1,7 @@
 import { Package, ArrowUpCircle, AlertTriangle, ShoppingCart } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createInventoryItem, createInventoryPurchase } from "@/actions/operations";
+import { getTodayDateISO } from "@/lib/timezone";
 
 type SearchParams = Promise<{ purchase?: string }>;
 
@@ -16,7 +17,7 @@ export default async function EstoquePage({ searchParams }: { searchParams: Sear
     const quantity = rows.reduce((sum, m) => sum + (m.movement_type === "entrada" ? Number(m.quantity) : m.movement_type === "saida" ? -Number(m.quantity) : Number(m.quantity)), 0);
     return { ...item, quantity, critical: Number(item.minimum_quantity) > 0 && quantity <= Number(item.minimum_quantity) };
   });
-  const today = new Date().toLocaleDateString("en-CA");
+  const today = getTodayDateISO();
   return <main className="content">
     <div className="page-heading"><div><h1>Estoque</h1></div></div>
 
