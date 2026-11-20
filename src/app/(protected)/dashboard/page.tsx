@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { Activity, CalendarDays, CircleDollarSign, PackageCheck, Users, ArrowUpRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { addMonthsToMonthISO, formatDateOnly, formatDateTime, getCurrentMonthISO, getTodayDateISO } from "@/lib/timezone";
 const money = (n: number) => new Intl.NumberFormat("pt-BR", {style:"currency",currency:"BRL"}).format(n/100);
-const date = (s: string) => new Date(`${s.slice(0,10)}T12:00:00`).toLocaleDateString("pt-BR");
+const date = formatDateOnly;
 
 export default async function DashboardPage() {
   const db = await createClient();
-  const now = new Date();
-  const today = now.toLocaleDateString("en-CA");
-  const start = new Date(now.getFullYear(),now.getMonth(),1).toLocaleDateString("en-CA");
-  const end = new Date(now.getFullYear(),now.getMonth()+1,1).toLocaleDateString("en-CA");
+  const today = getTodayDateISO();
+  const currentMonth = getCurrentMonthISO();
+  const start = `${currentMonth}-01`;
+  const end = `${addMonthsToMonthISO(currentMonth, 1)}-01`;
   const [{data:events,error:eventError},{data:items,error:itemError},{data:movements,error:movementError}] = await Promise.all([
     db.from("events").select("id,client_name,event_date,event_time,venue,package_name,total_cents,status,payment_status,created_at,event_payments(amount_cents,paid_at)").neq("status","Cancelado").order("event_date").limit(500),
     db.from("inventory_items").select("id,name,unit,minimum_quantity").eq("active",true),
@@ -40,7 +41,7 @@ export default async function DashboardPage() {
     {(eventError||itemError||movementError)&&<p className="operation-empty">Alguns dados não puderam ser carregados. Verifique as migrations e permissões do Supabase.</p>}
     <section className="section-grid">
       <article className="panel"><div className="dashboard-panel-heading"><div><h3>Próximos eventos</h3></div><Link href="/agenda" className="dashboard-source-link">Ver agenda <ArrowUpRight size={14}/></Link></div>{!upcoming.length?<div className="empty-state"><div className="empty-icon"><CalendarDays size={20}/></div>Nenhum evento futuro cadastrado.</div>:<div className="upcoming-event-list">{upcoming.map(e=><Link href="/agenda" className="upcoming-event-row" key={e.id}><span className="upcoming-event-main"><strong>{e.client_name}</strong><time dateTime={e.event_date}>{date(e.event_date)}</time></span><span className={`upcoming-event-status ${Number(e.total_cents)===0?"is-no-charge":e.payment_status==="Pago"?"is-complete":e.payment_status==="Confirmado"?"is-confirmed":"is-pending"}`}>{Number(e.total_cents)===0?"Sem cobrança":e.payment_status||"A pagar"}</span></Link>)}</div>}</article>
-      <article className="panel"><h3>Atividade recente</h3>{!activity.length?<div className="empty-state"><div className="empty-icon"><Activity size={20}/></div>Nenhuma atividade registrada.</div>:<div className="dashboard-list">{activity.map(a=><div className="dashboard-list-row" key={a.kind+a.id}><div className="dashboard-list-icon">{a.kind==="event"?<CalendarDays size={17}/>:<PackageCheck size={17}/>}</div><div className="dashboard-list-content"><strong>{a.title}</strong><span>{a.detail}</span></div><small>{new Date(a.at).toLocaleDateString("pt-BR")}</small></div>)}</div>}</article>
+      <article className="panel"><h3>Atividade recente</h3>{!activity.length?<div className="empty-state"><div className="empty-icon"><Activity size={20}/></div>Nenhuma atividade registrada.</div>:<div className="dashboard-list">{activity.map(a=><div className="dashboard-list-row" key={a.kind+a.id}><div className="dashboard-list-icon">{a.kind==="event"?<CalendarDays size={17}/>:<PackageCheck size={17}/>}</div><div className="dashboard-list-content"><strong>{a.title}</strong><span>{a.detail}</span></div><small>{formatDateTime(a.at)}</small></div>)}</div>}</article>
     </section>
     {critical.length>0&&<section className="panel dashboard-critical"><div className="dashboard-panel-heading"><h3>Estoque crítico</h3><Link href="/estoque" className="dashboard-source-link">Ver estoque <ArrowUpRight size={14}/></Link></div><div className="dashboard-list">{critical.map(i=><Link href="/estoque" className="dashboard-list-row dashboard-list-row-link" key={i.id}><div className="dashboard-list-icon"><PackageCheck size={17}/></div><div className="dashboard-list-content"><strong>{i.name}</strong><span>Saldo: {(balances.get(i.id)??0).toLocaleString("pt-BR")} {i.unit} · Mínimo: {Number(i.minimum_quantity).toLocaleString("pt-BR")} {i.unit}</span></div><ArrowUpRight size={15}/></Link>)}</div></section>}
     
