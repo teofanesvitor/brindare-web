@@ -1,17 +1,18 @@
 import { CalendarDays, CircleDollarSign, FileCheck2, FileUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createEvent, registerEventPayment, uploadSignedEventContract, updateEventStatus } from "@/actions/operations";
+import { formatDateOnly, getTodayDateISO } from "@/lib/timezone";
 
 const money = (c: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(c / 100);
-const date = (value: string) => new Date(`${value}T12:00:00`).toLocaleDateString("pt-BR");
+const date = formatDateOnly;
 
 type SearchParams = Promise<{ status?: string; periodo?: string; payment?: string; signed?: string; created?: string }>;
 
 export default async function AgendaPage({ searchParams }: { searchParams: SearchParams }) {
   const filters = await searchParams;
   const supabase = await createClient();
-  const today = new Date().toLocaleDateString("en-CA");
+  const today = getTodayDateISO();
   const validStatuses = ["A pagar", "Confirmado", "Pago"];
   const selectedStatus = validStatuses.includes(filters.status || "") ? filters.status : "";
   const period = filters.periodo === "todos" ? "todos" : "futuros";
