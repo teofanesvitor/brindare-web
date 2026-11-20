@@ -27,6 +27,13 @@ export function formatDateOnly(value: string): string {
   }).format(new Date(Date.UTC(Number(year), Number(month) - 1, Number(day))));
 }
 
+export function formatInstantDate(value: string): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: APP_TIME_ZONE,
+    dateStyle: "short",
+  }).format(new Date(value));
+}
+
 export function formatDateTime(value: string): string {
   return new Intl.DateTimeFormat("pt-BR", {
     timeZone: APP_TIME_ZONE,
