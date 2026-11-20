@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addMonthsToMonthISO,
   formatDateOnly,
+  formatInstantDate,
   formatDateTime,
   formatMonthLabel,
   getCurrentMonthISO,
@@ -19,6 +20,7 @@ describe("fuso horário de Brasília", () => {
   });
 
   it("formata instantes no horário de Brasília", () => {
+    expect(formatInstantDate("2026-11-20T02:30:00.000Z")).toBe("19/11/2026");
     expect(formatDateTime("2026-11-20T02:30:00.000Z")).toBe("19/11/2026, 23:30");
   });
 
