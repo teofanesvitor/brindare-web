@@ -1,6 +1,7 @@
 import { FileText, FileDown } from "lucide-react";
 import { ContractForm } from "./contract-form";
 import { createClient } from "@/lib/supabase/server";
+import { formatDateOnly } from "@/lib/timezone";
 
 function brl(cents: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
@@ -33,7 +34,7 @@ export default async function ContratosPage({ searchParams }: { searchParams: Pr
     <div className="contract-notice"><FileText size={18}/><div><strong>Modelo oficial Brindare</strong></div></div>
     <ContractForm initialData={initialData}/>
     <section className="contract-history"><div className="history-heading"><div><h2>Contratos recentes</h2></div></div>
-      {error ? <div className="contract-error">Não foi possível carregar o histórico. Verifique se a migration de contratos foi aplicada no Supabase.</div> : !history.length ? <div className="history-empty">Nenhum contrato registrado ainda.</div> : <div className="history-list">{history.map((item) => <article className="history-row" key={item.id}><div className="history-main"><strong>{item.client_name}</strong><span>{new Date(`${item.event_date}T12:00:00`).toLocaleDateString("pt-BR")} · {item.package_name} · {brl(item.total_cents)}</span><small>{item.file_name}</small></div><div className="history-actions">{item.docxUrl ? <a href={item.docxUrl} download={item.file_name || true} aria-label="Baixar DOCX"><FileDown size={16}/> DOCX</a> : <span>Arquivo legado no Google Drive</span>}</div></article>)}</div>}
+      {error ? <div className="contract-error">Não foi possível carregar o histórico. Verifique se a migration de contratos foi aplicada no Supabase.</div> : !history.length ? <div className="history-empty">Nenhum contrato registrado ainda.</div> : <div className="history-list">{history.map((item) => <article className="history-row" key={item.id}><div className="history-main"><strong>{item.client_name}</strong><span>{formatDateOnly(item.event_date)} · {item.package_name} · {brl(item.total_cents)}</span><small>{item.file_name}</small></div><div className="history-actions">{item.docxUrl ? <a href={item.docxUrl} download={item.file_name || true} aria-label="Baixar DOCX"><FileDown size={16}/> DOCX</a> : <span>Arquivo legado no Google Drive</span>}</div></article>)}</div>}
     </section>
   </main>;
 }
