@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getTodayDateISO } from "@/lib/timezone";
 
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 const text = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
@@ -390,7 +391,7 @@ export async function registerEventPayment(form: FormData) {
   const { error } = await supabase.rpc("register_event_payment", {
     p_event_id: eventId,
     p_amount_cents: Math.round(amount * 100),
-    p_paid_at: paidAt || new Date().toISOString().slice(0, 10),
+    p_paid_at: paidAt || getTodayDateISO(),
     p_payment_method: paymentMethod || null,
     p_notes: notes || null,
   });
