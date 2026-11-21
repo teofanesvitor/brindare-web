@@ -56,3 +56,47 @@ export async function cancelEvent(formData: FormData) {
   revalidatePath("/dashboard");
   redirect(cleanupWarning ? "/agenda?cancelled=1&files=warning" : "/agenda?cancelled=1");
 }
+
+
+export async function purgeCancelledEvents() {
+  await requireAdmin();
+  const supabase = await createClient();
+  const admin = createAdminClient();
+  const { data: cancelled, error: listError } = await supabase
+    .from("events").select("id,contract_id").eq("status", "Cancelado");
+  if (listError) throw new Error("Não foi possível localizar eventos cancelados: " + listError.message);
+  if (!cancelled?.length) redirect("/agenda");
+
+  const paths: string[] = [];
+  for (const event of cancelled) {
+    if (event.contract_id) {
+      const { data: contract, error } = await supabase
+        .from("contracts").select("docx_path").eq("id", event.contract_id).maybeSingle();
+      if (error) throw new Error("Não foi possível localizar DOCX de contrato cancelado: " + error.message);
+      if (contract?.docx_path) paths.push(contract.docx_path);
+    }
+    const { data: signed, error: signedError } = await supabase
+      .from("event_signed_contracts").select("storage_path").eq("event_id", event.id);
+    if (signedError) throw new Error("Não foi possível localizar arquivos assinados: " + signedError.message);
+    for (const file of signed || []) paths.push(file.storage_path);
+
+    const { error: cancelError } = await supabase.rpc("cancel_event_and_preserve_payments", {
+      p_event_id: event.id,
+    });
+    if (cancelError) throw new Error("Falha ao remover evento cancelado: " + cancelError.message);
+  }
+
+  let cleanupWarning = false;
+  if (paths.length) {
+    const { error } = await admin.storage.from("contracts").remove([...new Set(paths)]);
+    cleanupWarning = Boolean(error);
+    if (error) console.error("Falha ao remover arquivos antigos de eventos cancelados:", error.message);
+  }
+
+  revalidatePath("/agenda");
+  revalidatePath("/contratos");
+  revalidatePath("/estoque");
+  revalidatePath("/financeiro");
+  revalidatePath("/dashboard");
+  redirect(cleanupWarning ? "/agenda?purged=1&files=warning" : "/agenda?purged=1");
+}
