@@ -17,7 +17,7 @@ type SearchParams = Promise<{ installment?: string; expense?: string; settings?:
 
 type ExpenseRow = { id: string; description: string; category: string; amount_cents: number; due_date: string; status: string; paid_at: string | null; payment_method: string | null };
 type InstallmentRow = { id: string; installment_number: number; amount_cents: number; due_date: string; status: string; paid_at: string | null; inventory_purchases: { installments: number; inventory_items: { name: string }[] }[] };
-type EventPaymentRow = { id: string; amount_cents: number; paid_at: string; payment_method: string | null; notes: string | null; events: { client_name: string }[] };
+type EventPaymentRow = { id: string; amount_cents: number; paid_at: string; payment_method: string | null; notes: string | null; event_client_name: string | null; event_date: string | null; events: { client_name: string }[] };
 
 
 export default async function FinanceiroPage({ searchParams }: { searchParams: SearchParams }) {
@@ -33,7 +33,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
     supabase.from("financial_payables_summary").select("pending_cents,overdue_cents").maybeSingle(),
     supabase.from("financial_expenses").select("id,description,category,amount_cents,due_date,status,paid_at,payment_method").order("due_date", { ascending: false }).limit(60),
     supabase.from("inventory_purchase_installments").select("id,installment_number,amount_cents,due_date,status,paid_at,inventory_purchases(description,installments,inventory_items(name))").order("due_date", { ascending: false }).limit(60),
-    supabase.from("event_payments").select("id,amount_cents,paid_at,payment_method,notes,events(client_name)").order("paid_at", { ascending: false }).limit(60),
+    supabase.from("event_payments").select("id,amount_cents,paid_at,payment_method,notes,event_client_name,event_date,events(client_name)").order("paid_at", { ascending: false }).limit(60),
   ]);
 
   const monthlyRows = (monthlyResult.data ?? []) as {
@@ -80,7 +80,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
   const chartMax = Math.max(1, ...chartRows.flatMap(row => [row.revenue, row.paidExpenses]));
   const recent = [
     ...payments.map(row => ({
-      id: row.id, date: row.paid_at, kind: "Receita", detail: row.events?.[0]?.client_name ?? "Pagamento de evento",
+      id: row.id, date: row.paid_at, kind: "Receita", detail: row.events?.[0]?.client_name ?? row.event_client_name ?? "Pagamento de evento",
       category: row.payment_method ?? "Evento", amount: Number(row.amount_cents), status: "Recebido",
     })),
     ...installments.map(row => ({
