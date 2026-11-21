@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, UserRoundCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { convertIntakeToClient } from "@/actions/operations";
+import { formatDateTime } from "@/lib/timezone";
 
 export default async function ReviewClientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -13,7 +14,7 @@ export default async function ReviewClientPage({ params }: { params: Promise<{ i
   const p = (intake.payload || {}) as Record<string,string>;
   return <main className="content">
     <div className="page-heading"><div><div className="eyebrow">Clientes · Revisão</div><h1>Conferir pré-cadastro</h1><p>Revise os dados enviados pelo cliente e complete o cadastro administrativo.</p></div><Link className="operation-link" href="/clientes"><ArrowLeft size={15}/> Voltar</Link></div>
-    <section className="operation-panel"><div className="operation-title"><div><h2><UserRoundCheck size={17}/> Dados enviados</h2><p>Recebido em {intake.submitted_at ? new Date(intake.submitted_at).toLocaleString("pt-BR") : "—"}</p></div></div>
+    <section className="operation-panel"><div className="operation-title"><div><h2><UserRoundCheck size={17}/> Dados enviados</h2><p>Recebido em {intake.submitted_at ? formatDateTime(intake.submitted_at) : "—"}</p></div></div>
       <form action={convertIntakeToClient} className="operation-form">
         <input type="hidden" name="intake_id" value={intake.id}/>
         <label>Nome completo *<input name="full_name" required defaultValue={p.full_name || ""}/></label>
