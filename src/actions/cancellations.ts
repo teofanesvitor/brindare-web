@@ -65,7 +65,6 @@ export async function purgeCancelledEvents() {
   const { data: cancelled, error: listError } = await supabase
     .from("events").select("id,contract_id").eq("status", "Cancelado");
   if (listError) throw new Error("Não foi possível localizar eventos cancelados: " + listError.message);
-  if (!cancelled?.length) redirect("/agenda");
 
   const paths: string[] = [];
   for (const event of cancelled) {
