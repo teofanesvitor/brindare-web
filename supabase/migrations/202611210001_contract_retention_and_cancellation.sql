@@ -214,3 +214,53 @@ end;
 $$;
 
 grant execute on function public.create_contract_and_event(jsonb, jsonb) to authenticated;
+
+
+-- Recupera vínculos de eventos cancelados antigos criados antes da relação
+-- contract_id existir, usando cliente, data e pacote como correspondência.
+update public.events e
+set contract_id = (
+  select c.id
+  from public.contracts c
+  where lower(trim(c.client_name)) = lower(trim(e.client_name))
+    and c.event_date = e.event_date
+    and c.package_name = e.package_name
+    and not exists (
+      select 1 from public.events linked where linked.contract_id = c.id
+    )
+  order by abs(extract(epoch from (c.created_at - e.created_at)))
+  limit 1
+)
+where e.status = 'Cancelado'
+  and e.contract_id is null
+  and exists (
+    select 1 from public.contracts c
+    where lower(trim(c.client_name)) = lower(trim(e.client_name))
+      and c.event_date = e.event_date
+      and c.package_name = e.package_name
+  );
+
+-- Remove contratos marcados como cancelados que não possuam mais evento vinculado.
+-- Retorna os caminhos para que a aplicação também apague os arquivos no Storage.
+create or replace function public.purge_orphan_cancelled_contracts()
+returns table(docx_path text)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'Acesso não autorizado.';
+  end if;
+
+  return query
+  delete from public.contracts c
+  where c.status = 'cancelled'
+    and not exists (
+      select 1 from public.events e where e.contract_id = c.id
+    )
+  returning c.docx_path;
+end;
+$$;
+
+grant execute on function public.purge_orphan_cancelled_contracts() to authenticated;
