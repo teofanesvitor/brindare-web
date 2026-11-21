@@ -1,6 +1,7 @@
 import { CalendarDays, CircleDollarSign, FileCheck2, FileUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createEvent, registerEventPayment, uploadSignedEventContract, updateEventStatus } from "@/actions/operations";
+import { cancelEvent } from "@/actions/cancellations";
 import { formatDateOnly, formatInstantDate, getTodayDateISO } from "@/lib/timezone";
 
 const money = (c: number) =>
@@ -56,6 +57,8 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
       </div></div>
 
       {filters.created === "1" && <p className="operation-success">Evento criado na agenda.</p>}
+      {filters.cancelled === "1" && <p className="operation-success">Evento e contrato removidos. Os pagamentos foram preservados no histórico financeiro.</p>}
+      {filters.files === "warning" && <p className="operation-empty">O evento foi removido, mas alguns arquivos não puderam ser excluídos do armazenamento. Verifique o Storage do Supabase.</p>}
       <details className="operation-panel agenda-create-event">
         <summary className="agenda-create-summary">+ Adicionar evento sem contrato</summary>
         <form action={createEvent} className="operation-form agenda-create-form">
@@ -140,11 +143,18 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
                       <select name="status" defaultValue={event.status} aria-label="Situação do evento">
                         <option value="Confirmado">Agendado / confirmado</option>
                         <option value="Realizado">Realizado</option>
-                        <option value="Cancelado">Cancelado</option>
                       </select>
                       <button type="submit">Atualizar evento</button>
                     </form>
                     {event.status === "Realizado" && <small>Consumo de materiais processado.</small>}
+                    {event.status !== "Realizado" && <details className="cancel-event-details">
+                      <summary>Cancelar evento</summary>
+                      <form action={cancelEvent} className="payment-form">
+                        <input type="hidden" name="event_id" value={event.id}/>
+                        <small>O evento e o contrato serão removidos. Pagamentos registrados permanecerão no histórico financeiro.</small>
+                        <button type="submit">Confirmar cancelamento</button>
+                      </form>
+                    </details>}
                   </td>
                   <td>
                     {event.latestSigned ? <div className="signed-contract-state">
