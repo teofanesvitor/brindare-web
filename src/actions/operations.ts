@@ -361,7 +361,7 @@ export async function updateEventStatus(form: FormData) {
   const supabase = await createClient();
   const id = text(form, "event_id");
   const status = text(form, "status");
-  if (!id || !["A pagar", "Confirmado", "Pago", "Realizado", "Cancelado"].includes(status)) {
+  if (!id || !["A pagar", "Confirmado", "Pago", "Realizado"].includes(status)) {
     throw new Error("Status de evento inválido.");
   }
   const { error } = await supabase.from("events").update({ status }).eq("id", id);
