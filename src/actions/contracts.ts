@@ -53,7 +53,7 @@ export async function generateContractAction(formData: FormData): Promise<Contra
       balance_cents: Math.round(parsed.data.balance * 100),
       docx_path: generated.storagePath,
       file_name: `${generated.name}.docx`,
-      input_snapshot: parsed.data,
+      input_snapshot: Object.fromEntries(Object.entries(parsed.data).filter(([key]) => key !== "contractId")),
       status: "generated",
     };
     const pEvent = {
