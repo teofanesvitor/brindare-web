@@ -26,6 +26,7 @@ const packagePrices = { Essencial: 450, Celebração: 650, Luxo: 900 } as const;
 
 export const contractSchema = z.object({
   clientId: z.string().uuid().optional(),
+  contractId: z.string().uuid().optional(),
   eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => {
     const parsed = new Date(`${value}T12:00:00`);
     return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
