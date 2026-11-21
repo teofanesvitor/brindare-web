@@ -10,7 +10,7 @@ export default async function ContratosPage({ searchParams }: { searchParams: Pr
   const { clientId, intakeId, contractId } = await searchParams;
   const supabase = await createClient();
   const [{ data: contracts, error }, { data: client }, { data: intake }] = await Promise.all([
-    supabase.from("contracts").select("id, client_name, event_date, package_name, total_cents, docx_path, file_name, created_at").order("created_at", { ascending: false }).limit(20),
+    supabase.from("contracts").select("id, client_name, event_date, package_name, total_cents, docx_path, file_name, created_at").order("docx_created_at", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false }).limit(20),
     clientId ? supabase.from("clients").select("id,full_name,cpf,rg,phone,email,address,neighborhood,city,event_details").eq("id", clientId).maybeSingle() : Promise.resolve({ data: null }),
     intakeId ? supabase.from("client_intakes").select("payload").eq("id", intakeId).maybeSingle() : Promise.resolve({ data: null }),
   ]);
