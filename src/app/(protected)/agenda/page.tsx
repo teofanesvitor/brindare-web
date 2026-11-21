@@ -1,14 +1,14 @@
 import { CalendarDays, CircleDollarSign, FileCheck2, FileUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createEvent, registerEventPayment, uploadSignedEventContract, updateEventStatus } from "@/actions/operations";
-import { cancelEvent } from "@/actions/cancellations";
+import { cancelEvent, purgeCancelledEvents } from "@/actions/cancellations";
 import { formatDateOnly, formatInstantDate, getTodayDateISO } from "@/lib/timezone";
 
 const money = (c: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(c / 100);
 const date = formatDateOnly;
 
-type SearchParams = Promise<{ status?: string; periodo?: string; payment?: string; signed?: string; created?: string; cancelled?: string; files?: string }>;
+type SearchParams = Promise<{ status?: string; periodo?: string; payment?: string; signed?: string; created?: string; cancelled?: string; files?: string; purged?: string }>;
 
 export default async function AgendaPage({ searchParams }: { searchParams: SearchParams }) {
   const filters = await searchParams;
@@ -25,7 +25,10 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
   if (period === "futuros") query = query.gte("event_date", today);
   if (selectedStatus) query = query.eq("payment_status", selectedStatus);
 
-  const { data: events, error } = await query;
+  const [{ data: events, error }, { count: cancelledCount }] = await Promise.all([
+    query,
+    supabase.from("events").select("id", { count: "exact", head: true }).eq("status", "Cancelado"),
+  ]);
   const rows = await Promise.all((events ?? []).map(async (event) => {
     const payments = (event.event_payments ?? []) as {
       amount_cents: number; paid_at: string; payment_method: string | null; notes: string | null;
@@ -58,6 +61,12 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
 
       {filters.created === "1" && <p className="operation-success">Evento criado na agenda.</p>}
       {filters.cancelled === "1" && <p className="operation-success">Evento e contrato removidos. Os pagamentos foram preservados no histórico financeiro.</p>}
+      {filters.purged === "1" && <p className="operation-success">Registros antigos de eventos cancelados removidos. O histórico financeiro foi preservado.</p>}
+      {(cancelledCount || 0) > 0 && <form action={purgeCancelledEvents} className="operation-panel">
+        <p>Existem {cancelledCount} evento(s) cancelado(s) antigo(s) ainda armazenado(s).</p>
+        <small>A limpeza remove os eventos, contratos e arquivos associados, sem apagar pagamentos registrados.</small>
+        <button type="submit">Remover cancelados antigos</button>
+      </form>}
       {filters.files === "warning" && <p className="operation-empty">O evento foi removido, mas alguns arquivos não puderam ser excluídos do armazenamento. Verifique o Storage do Supabase.</p>}
       <details className="operation-panel agenda-create-event">
         <summary className="agenda-create-summary">+ Adicionar evento sem contrato</summary>
