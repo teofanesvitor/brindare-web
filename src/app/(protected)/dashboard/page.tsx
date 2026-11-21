@@ -11,14 +11,15 @@ export default async function DashboardPage() {
   const currentMonth = getCurrentMonthISO();
   const start = `${currentMonth}-01`;
   const end = `${addMonthsToMonthISO(currentMonth, 1)}-01`;
-  const [{data:events,error:eventError},{data:items,error:itemError},{data:movements,error:movementError}] = await Promise.all([
-    db.from("events").select("id,client_name,event_date,event_time,venue,package_name,total_cents,status,payment_status,created_at,event_payments(amount_cents,paid_at)").neq("status","Cancelado").order("event_date").limit(500),
+  const [{data:events,error:eventError},{data:items,error:itemError},{data:movements,error:movementError},{data:payments,error:paymentError}] = await Promise.all([
+    db.from("events").select("id,client_name,event_date,event_time,venue,package_name,total_cents,status,payment_status,created_at,event_payments(amount_cents)").neq("status","Cancelado").order("event_date").limit(500),
     db.from("inventory_items").select("id,name,unit,minimum_quantity").eq("active",true),
     db.from("inventory_movements").select("id,item_id,movement_type,quantity,description,created_at").order("created_at",{ascending:false}).limit(1000),
+    db.from("event_payments").select("amount_cents,paid_at").gte("paid_at",start).lt("paid_at",end),
   ]);
   const rows = events ?? [];
   const monthEvents = rows.filter(e=>e.event_date>=start && e.event_date<end);
-  const received = rows.reduce((sum,e)=>sum+((e.event_payments ?? []) as {amount_cents:number;paid_at:string}[]).filter(p=>p.paid_at>=start && p.paid_at<end).reduce((s,p)=>s+Number(p.amount_cents),0),0);
+  const received = (payments ?? []).reduce((sum,p)=>sum+Number(p.amount_cents),0);
   const receivable = rows.reduce((sum,e)=>sum+Math.max(0,Number(e.total_cents)-((e.event_payments ?? []) as {amount_cents:number}[]).reduce((s,p)=>s+Number(p.amount_cents),0)),0);
   const balances = new Map<string,number>();
   for(const m of movements ?? []) { const q=Number(m.quantity); balances.set(m.item_id,(balances.get(m.item_id)??0)+(m.movement_type==="entrada"?q:m.movement_type==="saida"?-q:q)); }
@@ -30,7 +31,7 @@ export default async function DashboardPage() {
   ].sort((a,b)=>new Date(b.at).getTime()-new Date(a.at).getTime()).slice(0,6);
   const stats=[
     {label:"Eventos no mês",value:String(monthEvents.length),note:"Eventos agendados no mês atual",icon:CalendarDays},
-    {label:"Recebido no mês",value:money(received),note:"Pagamentos recebidos neste mês",icon:CircleDollarSign},
+    {label:"Recebido no mês",value:money(received),note:"Inclui recebimentos de eventos cancelados",icon:CircleDollarSign},
     {label:"A receber",value:money(receivable),note:"Saldo de eventos não cancelados",icon:Users},
     {label:"Estoque crítico",value:String(critical.length),note:"Itens no mínimo ou abaixo",icon:PackageCheck},
   ];
@@ -38,7 +39,7 @@ export default async function DashboardPage() {
     <div className="page-heading"><div><h1>Visão geral</h1></div></div>
     <section className="welcome-card"><div><h2>Os bastidores de cada celebração.</h2></div><div className="welcome-mark">b.</div></section>
     <section className="stats-grid" aria-label="Indicadores">{stats.map(({label,value,note,icon:Icon})=><article className="stat-card" key={label}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span className="stat-label">{label}</span><Icon size={18} color="#b18c19"/></div><div className="stat-value">{value}</div><div className="stat-note">{note}</div></article>)}</section>
-    {(eventError||itemError||movementError)&&<p className="operation-empty">Alguns dados não puderam ser carregados. Verifique as migrations e permissões do Supabase.</p>}
+    {(eventError||itemError||movementError||paymentError)&&<p className="operation-empty">Alguns dados não puderam ser carregados. Verifique as migrations e permissões do Supabase.</p>}
     <section className="section-grid">
       <article className="panel"><div className="dashboard-panel-heading"><div><h3>Próximos eventos</h3></div><Link href="/agenda" className="dashboard-source-link">Ver agenda <ArrowUpRight size={14}/></Link></div>{!upcoming.length?<div className="empty-state"><div className="empty-icon"><CalendarDays size={20}/></div>Nenhum evento futuro cadastrado.</div>:<div className="upcoming-event-list">{upcoming.map(e=><Link href="/agenda" className="upcoming-event-row" key={e.id}><span className="upcoming-event-main"><strong>{e.client_name}</strong><time dateTime={e.event_date}>{date(e.event_date)}</time></span><span className={`upcoming-event-status ${Number(e.total_cents)===0?"is-no-charge":e.payment_status==="Pago"?"is-complete":e.payment_status==="Confirmado"?"is-confirmed":"is-pending"}`}>{Number(e.total_cents)===0?"Sem cobrança":e.payment_status||"A pagar"}</span></Link>)}</div>}</article>
       <article className="panel"><h3>Atividade recente</h3>{!activity.length?<div className="empty-state"><div className="empty-icon"><Activity size={20}/></div>Nenhuma atividade registrada.</div>:<div className="dashboard-list">{activity.map(a=><div className="dashboard-list-row" key={a.kind+a.id}><div className="dashboard-list-icon">{a.kind==="event"?<CalendarDays size={17}/>:<PackageCheck size={17}/>}</div><div className="dashboard-list-content"><strong>{a.title}</strong><span>{a.detail}</span></div><small>{formatInstantDate(a.at)}</small></div>)}</div>}</article>
