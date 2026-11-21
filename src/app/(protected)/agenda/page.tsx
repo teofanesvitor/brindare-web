@@ -25,9 +25,10 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
   if (period === "futuros") query = query.gte("event_date", today);
   if (selectedStatus) query = query.eq("payment_status", selectedStatus);
 
-  const [{ data: events, error }, { count: cancelledCount }] = await Promise.all([
+  const [{ data: events, error }, { count: cancelledCount }, { count: orphanCancelledContracts }] = await Promise.all([
     query,
     supabase.from("events").select("id", { count: "exact", head: true }).eq("status", "Cancelado"),
+    supabase.from("contracts").select("id", { count: "exact", head: true }).eq("status", "cancelled"),
   ]);
   const rows = await Promise.all((events ?? []).map(async (event) => {
     const payments = (event.event_payments ?? []) as {
@@ -62,8 +63,8 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
       {filters.created === "1" && <p className="operation-success">Evento criado na agenda.</p>}
       {filters.cancelled === "1" && <p className="operation-success">Evento e contrato removidos. Os pagamentos foram preservados no histórico financeiro.</p>}
       {filters.purged === "1" && <p className="operation-success">Registros antigos de eventos cancelados removidos. O histórico financeiro foi preservado.</p>}
-      {(cancelledCount || 0) > 0 && <form action={purgeCancelledEvents} className="operation-panel">
-        <p>Existem {cancelledCount} evento(s) cancelado(s) antigo(s) ainda armazenado(s).</p>
+      {((cancelledCount || 0) + (orphanCancelledContracts || 0)) > 0 && <form action={purgeCancelledEvents} className="operation-panel">
+        <p>Existem {cancelledCount || 0} evento(s) e {orphanCancelledContracts || 0} contrato(s) cancelado(s) antigo(s) ainda armazenado(s).</p>
         <small>A limpeza remove os eventos, contratos e arquivos associados, sem apagar pagamentos registrados.</small>
         <button type="submit">Remover cancelados antigos</button>
       </form>}
