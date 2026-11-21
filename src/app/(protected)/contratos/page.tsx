@@ -1,18 +1,20 @@
 import { FileText, FileDown } from "lucide-react";
 import { ContractForm } from "./contract-form";
+import { cleanupOldContractDocuments } from "@/actions/contracts";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateOnly } from "@/lib/timezone";
 
 function brl(cents: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 }
-export default async function ContratosPage({ searchParams }: { searchParams: Promise<{ clientId?: string; intakeId?: string; contractId?: string }> }) {
-  const { clientId, intakeId, contractId } = await searchParams;
+export default async function ContratosPage({ searchParams }: { searchParams: Promise<{ clientId?: string; intakeId?: string; contractId?: string; cleanup?: string }> }) {
+  const { clientId, intakeId, contractId, cleanup } = await searchParams;
   const supabase = await createClient();
-  const [{ data: contracts, error }, { data: client }, { data: intake }] = await Promise.all([
+  const [{ data: contracts, error }, { data: client }, { data: intake }, { count: docxCount }] = await Promise.all([
     supabase.from("contracts").select("id, client_name, event_date, package_name, total_cents, docx_path, file_name, created_at").order("docx_created_at", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false }).limit(20),
     clientId ? supabase.from("clients").select("id,full_name,cpf,rg,phone,email,address,neighborhood,city,event_details").eq("id", clientId).maybeSingle() : Promise.resolve({ data: null }),
     intakeId ? supabase.from("client_intakes").select("payload").eq("id", intakeId).maybeSingle() : Promise.resolve({ data: null }),
+    supabase.from("contracts").select("id", { count: "exact", head: true }).not("docx_path", "is", null),
   ]);
   const { data: selectedContract } = contractId
     ? await supabase.from("contracts").select("id,input_snapshot").eq("id", contractId).maybeSingle()
@@ -44,6 +46,13 @@ export default async function ContratosPage({ searchParams }: { searchParams: Pr
   }));
   return <main className="content"><div className="page-heading"><div><h1>Geração de contratos</h1></div></div>
     <div className="contract-notice"><FileText size={18}/><div><strong>Modelo oficial Brindare</strong></div></div>
+    {cleanup === "done" && <p className="operation-success">Limpeza concluída. Apenas os cinco DOCX mais recentes foram mantidos; os dados dos contratos antigos continuam disponíveis para reemissão.</p>}
+    {cleanup === "warning" && <p className="contract-error">Não foi possível concluir toda a limpeza dos DOCX. Verifique as permissões do Storage e tente novamente.</p>}
+    {(docxCount || 0) > 5 && <form action={cleanupOldContractDocuments} className="operation-panel">
+      <p>Existem {docxCount} arquivos DOCX armazenados. A retenção definida é de cinco arquivos.</p>
+      <small>Os dados dos contratos antigos serão preservados para consulta e reemissão.</small>
+      <button type="submit">Manter somente os cinco DOCX recentes</button>
+    </form>}
     <ContractForm key={initialData?.contractId || initialData?.clientId || "new"} initialData={initialData}/>
     <section className="contract-history"><div className="history-heading"><div><h2>Contratos recentes</h2></div></div>
       {error ? <div className="contract-error">Não foi possível carregar o histórico. Verifique se a migration de contratos foi aplicada no Supabase.</div> : !history.length ? <div className="history-empty">Nenhum contrato registrado ainda.</div> : <div className="history-list">{history.map((item) => <article className="history-row" key={item.id}><div className="history-main"><strong>{item.client_name}</strong><span>{formatDateOnly(item.event_date)} · {item.package_name} · {brl(item.total_cents)}</span><small>{item.file_name}</small></div><div className="history-actions">{item.docxUrl ? <a href={item.docxUrl} download={item.file_name || true} aria-label="Baixar DOCX"><FileDown size={16}/> DOCX</a> : <span>DOCX arquivado</span>}<a href={"/contratos?contractId=" + item.id}>Refazer</a></div></article>)}</div>}
