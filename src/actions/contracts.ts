@@ -11,26 +11,32 @@ export type ContractActionResult =
   | { ok: true; name: string; documentUrl: string }
   | { ok: false; message: string };
 
-async function retainRecentContractDocuments(supabase: Awaited<ReturnType<typeof createClient>>) {
+async function retainRecentContractDocuments(supabase: Awaited<ReturnType<typeof createClient>>): Promise<boolean> {
   const { data: documents, error } = await supabase
     .from("contracts")
     .select("id,docx_path")
     .not("docx_path", "is", null)
     .order("docx_created_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
-  if (error || !documents || documents.length <= 5) return;
+  if (error || !documents) return false;
+  if (documents.length <= 5) return true;
 
   const expired = documents.slice(5).filter((item) => item.docx_path);
-  if (!expired.length) return;
+  if (!expired.length) return true;
   const { error: removeError } = await supabase.storage
     .from("contracts")
     .remove(expired.map((item) => item.docx_path as string));
   if (removeError) {
     console.error("Falha ao aplicar retenção de DOCX:", removeError.message);
-    return;
+    return false;
   }
-  await supabase.from("contracts").update({ docx_path: null })
+  const { error: updateError } = await supabase.from("contracts").update({ docx_path: null })
     .in("id", expired.map((item) => item.id));
+  if (updateError) {
+    console.error("Falha ao atualizar caminhos dos DOCX arquivados:", updateError.message);
+    return false;
+  }
+  return true;
 }
 
 export async function generateContractAction(formData: FormData): Promise<ContractActionResult> {
@@ -126,7 +132,7 @@ export async function generateContractAction(formData: FormData): Promise<Contra
 export async function cleanupOldContractDocuments() {
   await requireAdmin();
   const supabase = await createClient();
-  await retainRecentContractDocuments(supabase);
+  const cleaned = await retainRecentContractDocuments(supabase);
   revalidatePath("/contratos");
-  redirect("/contratos?cleanup=done");
+  redirect(cleaned ? "/contratos?cleanup=done" : "/contratos?cleanup=warning");
 }
