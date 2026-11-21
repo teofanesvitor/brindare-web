@@ -86,6 +86,10 @@ export async function purgeCancelledEvents() {
     if (cancelError) throw new Error("Falha ao remover evento cancelado: " + cancelError.message);
   }
 
+  const { data: orphanedPaths, error: orphanError } = await supabase.rpc("purge_orphan_cancelled_contracts");
+  if (orphanError) throw new Error("Não foi possível remover contratos cancelados sem evento: " + orphanError.message);
+  for (const path of orphanedPaths || []) if (path.docx_path) paths.push(path.docx_path);
+
   let cleanupWarning = false;
   if (paths.length) {
     const { error } = await admin.storage.from("contracts").remove([...new Set(paths)]);
