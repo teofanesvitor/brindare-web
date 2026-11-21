@@ -157,3 +157,60 @@ end;
 $$;
 
 grant execute on function public.cancel_event_and_preserve_payments(uuid) to authenticated;
+
+
+-- Mantém a criação de contrato e evento em uma única transação, incluindo
+-- o horário do brinde e a data de geração do DOCX.
+create or replace function public.create_contract_and_event(
+  p_contract jsonb,
+  p_event jsonb
+) returns uuid
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  v_contract_id uuid;
+begin
+  if not public.is_admin() then
+    raise exception 'Acesso não autorizado.';
+  end if;
+  if p_contract->>'created_by' is distinct from auth.uid()::text
+     or p_event->>'created_by' is distinct from auth.uid()::text then
+    raise exception 'Usuário criador inválido.';
+  end if;
+
+  insert into public.contracts (
+    created_by, client_name, event_date, package_name,
+    total_cents, deposit_cents, balance_cents, docx_path,
+    docx_created_at, file_name, input_snapshot, status
+  ) values (
+    auth.uid(), p_contract->>'client_name', (p_contract->>'event_date')::date,
+    p_contract->>'package_name', (p_contract->>'total_cents')::bigint,
+    (p_contract->>'deposit_cents')::bigint, (p_contract->>'balance_cents')::bigint,
+    p_contract->>'docx_path', now(), p_contract->>'file_name',
+    p_contract->'input_snapshot', coalesce(p_contract->>'status', 'generated')
+  ) returning id into v_contract_id;
+
+  insert into public.events (
+    contract_id, client_id, client_name, event_date, event_time, toast_time,
+    venue, package_name, total_cents, deposit_cents, balance_cents,
+    travel_cents, status, glasses, fireworks, sparkles, tables,
+    champagne, created_by
+  ) values (
+    v_contract_id, nullif(p_event->>'client_id', '')::uuid,
+    p_event->>'client_name', (p_event->>'event_date')::date,
+    nullif(p_event->>'event_time', '')::time, nullif(p_event->>'toast_time', '')::time,
+    p_event->>'venue', p_event->>'package_name',
+    (p_event->>'total_cents')::bigint, (p_event->>'deposit_cents')::bigint,
+    (p_event->>'balance_cents')::bigint, (p_event->>'travel_cents')::bigint,
+    coalesce(p_event->>'status', 'A pagar'), (p_event->>'glasses')::integer,
+    (p_event->>'fireworks')::integer, (p_event->>'sparkles')::integer,
+    (p_event->>'tables')::integer, (p_event->>'champagne')::integer, auth.uid()
+  );
+
+  return v_contract_id;
+end;
+$$;
+
+grant execute on function public.create_contract_and_event(jsonb, jsonb) to authenticated;
