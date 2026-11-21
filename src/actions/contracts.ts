@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { contractSchema } from "@/lib/contracts/schema";
@@ -119,4 +120,13 @@ export async function generateContractAction(formData: FormData): Promise<Contra
     const message = error instanceof Error ? error.message : "Falha desconhecida ao gerar contrato.";
     return { ok: false, message: `Não foi possível gerar o contrato. ${message}` };
   }
+}
+
+
+export async function cleanupOldContractDocuments() {
+  await requireAdmin();
+  const supabase = await createClient();
+  await retainRecentContractDocuments(supabase);
+  revalidatePath("/contratos");
+  redirect("/contratos?cleanup=done");
 }
