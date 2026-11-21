@@ -1,27 +1,32 @@
 import { Package, ArrowUpCircle, AlertTriangle, ShoppingCart } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createInventoryItem, createInventoryPurchase } from "@/actions/operations";
-import { getTodayDateISO } from "@/lib/timezone";
+import { formatDateTime, getTodayDateISO } from "@/lib/timezone";
+import { calculateInventoryBalance } from "@/lib/inventory";
 
 type SearchParams = Promise<{ purchase?: string }>;
 
 export default async function EstoquePage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const supabase = await createClient();
-  const [{ data: items, error }, { data: movements }] = await Promise.all([
+  const [{ data: items, error: itemsError }, { data: movements, error: movementsError }] = await Promise.all([
     supabase.from("inventory_items").select("id,name,unit,minimum_quantity,active,item_type").eq("active", true).order("name"),
-    supabase.from("inventory_movements").select("id,item_id,movement_type,quantity,description,created_at,inventory_items(name,unit)").order("created_at", { ascending: false }).limit(100),
+    // O saldo depende de todo o histórico, não apenas das 100 movimentações mais recentes.
+    supabase.from("inventory_movements").select("id,item_id,movement_type,quantity,description,created_at,inventory_items(name,unit)").order("created_at", { ascending: false }),
   ]);
-  const stock = (items ?? []).map(item => {
+  const stock = !itemsError && !movementsError ? (items ?? []).map(item => {
     const rows = (movements ?? []).filter(m => m.item_id === item.id);
-    const quantity = rows.reduce((sum, m) => sum + (m.movement_type === "entrada" ? Number(m.quantity) : m.movement_type === "saida" ? -Number(m.quantity) : Number(m.quantity)), 0);
+    const quantity = calculateInventoryBalance(rows);
     return { ...item, quantity, critical: Number(item.minimum_quantity) > 0 && quantity <= Number(item.minimum_quantity) };
-  });
+  }) : [];
   const today = getTodayDateISO();
+  const stockError = itemsError || movementsError;
+
   return <main className="content">
     <div className="page-heading"><div><h1>Estoque</h1></div></div>
 
     {params.purchase === "registered" && <p className="operation-success">Compra registrada. A entrada foi adicionada ao estoque e as parcelas foram lançadas no fluxo de caixa.</p>}
+    {stockError && <p className="operation-empty" role="alert">Não foi possível calcular o saldo do estoque. Os dados não foram substituídos por zero; atualize a página ou verifique as permissões e a conexão com o banco.</p>}
 
     <div className="inventory-section-label">Materiais reutilizáveis</div>
     <div className="inventory-grid">{stock.filter(i => i.item_type === "reutilizavel").map(item=><article className="inventory-card" key={item.id}><div className="inventory-card-top"><span>{item.name}</span>{item.critical ? <AlertTriangle size={17} color="#b45b32"/> : <Package size={17} color="#a88618"/>}</div><strong>{item.quantity.toLocaleString("pt-BR")} <small>{item.unit}</small></strong><p>Mínimo: {Number(item.minimum_quantity).toLocaleString("pt-BR")} {item.unit}</p>{item.critical && <span className="inventory-warning">Estoque no mínimo ou abaixo</span>}</article>)}</div>
@@ -56,7 +61,7 @@ export default async function EstoquePage({ searchParams }: { searchParams: Sear
     </div>
 
     <section className="operation-panel"><div className="operation-title"><div><h2><ArrowUpCircle size={17}/> Movimentações recentes</h2></div></div>
-      {error ? <p className="operation-empty">Não foi possível carregar o estoque. Verifique a migration.</p> : !movements?.length ? <p className="operation-empty">Nenhuma movimentação registrada.</p> : <div className="operation-table-wrap"><table className="operation-table"><thead><tr><th>Data</th><th>Produto</th><th>Tipo</th><th>Quantidade</th><th>Descrição</th></tr></thead><tbody>{movements.slice(0,30).map(m=><tr key={m.id}><td>{new Date(m.created_at).toLocaleString("pt-BR")}</td><td>{(m.inventory_items as unknown as {name:string})?.name}</td><td>{m.movement_type === "entrada" ? "Compra / entrada" : m.movement_type === "saida" ? "Saída" : "Ajuste"}</td><td>{m.quantity}</td><td>{m.description || "—"}</td></tr>)}</tbody></table></div>}
+      {movementsError ? <p className="operation-empty">Não foi possível carregar o histórico de movimentações.</p> : !movements?.length ? <p className="operation-empty">Nenhuma movimentação registrada.</p> : <div className="operation-table-wrap"><table className="operation-table"><thead><tr><th>Data</th><th>Produto</th><th>Tipo</th><th>Quantidade</th><th>Descrição</th></tr></thead><tbody>{movements.slice(0,30).map(m=><tr key={m.id}><td>{formatDateTime(m.created_at)}</td><td>{(m.inventory_items as unknown as {name:string})?.name}</td><td>{m.movement_type === "entrada" ? "Compra / entrada" : m.movement_type === "saida" ? "Saída" : "Ajuste"}</td><td>{m.quantity}</td><td>{m.description || "—"}</td></tr>)}</tbody></table></div>}
     </section>
   </main>;
 }
