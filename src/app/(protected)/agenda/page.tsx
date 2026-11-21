@@ -8,7 +8,7 @@ const money = (c: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(c / 100);
 const date = formatDateOnly;
 
-type SearchParams = Promise<{ status?: string; periodo?: string; payment?: string; signed?: string; created?: string }>;
+type SearchParams = Promise<{ status?: string; periodo?: string; payment?: string; signed?: string; created?: string; cancelled?: string; files?: string }>;
 
 export default async function AgendaPage({ searchParams }: { searchParams: SearchParams }) {
   const filters = await searchParams;
