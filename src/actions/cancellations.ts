@@ -26,13 +26,15 @@ export async function cancelEvent(formData: FormData) {
 
   const paths: string[] = [];
   if (event.contract_id) {
-    const { data: contract } = await supabase
+    const { data: contract, error: contractError } = await supabase
       .from("contracts").select("docx_path").eq("id", event.contract_id).maybeSingle();
+    if (contractError) throw new Error("Não foi possível localizar o DOCX do contrato: " + contractError.message);
     if (contract?.docx_path) paths.push(contract.docx_path);
   }
 
-  const { data: signedFiles } = await supabase
+  const { data: signedFiles, error: signedError } = await supabase
     .from("event_signed_contracts").select("storage_path").eq("event_id", eventId);
+  if (signedError) throw new Error("Não foi possível localizar os contratos assinados: " + signedError.message);
   for (const file of signedFiles || []) paths.push(file.storage_path);
 
   const { error } = await supabase.rpc("cancel_event_and_preserve_payments", {
