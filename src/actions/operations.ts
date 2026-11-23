@@ -309,7 +309,7 @@ export async function createFinancialExpense(form: FormData) {
   const status = text(form, "status") === "paga" ? "paga" : "prevista";
   const paidAt = text(form, "paid_at");
   const paymentMethod = text(form, "payment_method");
-  const categories = ["Transporte", "Combustível", "Manutenção", "Mão de obra", "Serviços terceirizados", "Materiais", "Administrativo", "Impostos e taxas", "Outros"];
+  const categories = ["Transporte", "Combustível", "Manutenção", "Mão de obra", "Serviços terceirizados", "Materiais", "Administrativo", "Impostos e taxas", "Outros", "Retirada de lucro"];
   if (description.length < 2 || !categories.includes(category)) throw new Error("Informe uma descrição e uma categoria válida.");
   if (!Number.isFinite(amount) || amount <= 0) throw new Error("Informe um valor maior que zero.");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) throw new Error("Informe uma data de vencimento válida.");
