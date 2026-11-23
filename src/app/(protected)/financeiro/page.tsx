@@ -1,5 +1,6 @@
 import { CalendarClock, ChartNoAxesCombined, CircleDollarSign, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { addMonthsToMonthISO, formatDateOnly, formatMonthLabel, getTodayDateISO } from "@/lib/timezone";
 import {
   createFinancialExpense,
   markFinancialExpensePaid,
@@ -8,22 +9,15 @@ import {
 } from "@/actions/operations";
 
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
-const date = (value: string) => new Date(`${value}T12:00:00`).toLocaleDateString("pt-BR");
+const date = formatDateOnly;
 const monthKey = (value: string) => value.slice(0, 7);
-const monthLabel = (key: string) => {
-  const [year, month] = key.split("-").map(Number);
-  return new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date(year, month - 1, 1));
-};
-const addMonths = (key: string, amount: number) => {
-  const [year, month] = key.split("-").map(Number);
-  const value = new Date(year, month - 1 + amount, 1);
-  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}`;
-};
+const monthLabel = formatMonthLabel;
+const addMonths = addMonthsToMonthISO;
 type SearchParams = Promise<{ installment?: string; expense?: string; settings?: string }>;
 
 type ExpenseRow = { id: string; description: string; category: string; amount_cents: number; due_date: string; status: string; paid_at: string | null; payment_method: string | null };
 type InstallmentRow = { id: string; installment_number: number; amount_cents: number; due_date: string; status: string; paid_at: string | null; inventory_purchases: { installments: number; inventory_items: { name: string }[] }[] };
-type EventPaymentRow = { id: string; amount_cents: number; paid_at: string; payment_method: string | null; notes: string | null; events: { client_name: string }[] };
+type EventPaymentRow = { id: string; amount_cents: number; paid_at: string; payment_method: string | null; notes: string | null; event_client_name: string | null; event_date: string | null; events: { client_name: string }[] };
 
 
 export default async function FinanceiroPage({ searchParams }: { searchParams: SearchParams }) {
@@ -39,7 +33,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
     supabase.from("financial_payables_summary").select("pending_cents,overdue_cents").maybeSingle(),
     supabase.from("financial_expenses").select("id,description,category,amount_cents,due_date,status,paid_at,payment_method").order("due_date", { ascending: false }).limit(60),
     supabase.from("inventory_purchase_installments").select("id,installment_number,amount_cents,due_date,status,paid_at,inventory_purchases(description,installments,inventory_items(name))").order("due_date", { ascending: false }).limit(60),
-    supabase.from("event_payments").select("id,amount_cents,paid_at,payment_method,notes,events(client_name)").order("paid_at", { ascending: false }).limit(60),
+    supabase.from("event_payments").select("id,amount_cents,paid_at,payment_method,notes,event_client_name,event_date,events(client_name)").order("paid_at", { ascending: false }).limit(60),
   ]);
 
   const monthlyRows = (monthlyResult.data ?? []) as {
@@ -50,7 +44,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
   const payments = (paymentsResult.data ?? []) as EventPaymentRow[];
   const settings = settingsResult.data as { opening_balance_cents: number; opening_balance_date: string } | null;
   const openingBalance = Number(settings?.opening_balance_cents ?? 0);
-  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Maceio" });
+  const today = getTodayDateISO();
   const currentMonth = today.slice(0, 7);
   const openingMonth = settings?.opening_balance_date?.slice(0, 7) ?? currentMonth;
   const receivables = receivablesResult.data as { open_events: number; receivable_cents: number } | null;
@@ -86,7 +80,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
   const chartMax = Math.max(1, ...chartRows.flatMap(row => [row.revenue, row.paidExpenses]));
   const recent = [
     ...payments.map(row => ({
-      id: row.id, date: row.paid_at, kind: "Receita", detail: row.events?.[0]?.client_name ?? "Pagamento de evento",
+      id: row.id, date: row.paid_at, kind: "Receita", detail: row.events?.[0]?.client_name ?? row.event_client_name ?? "Pagamento de evento",
       category: row.payment_method ?? "Evento", amount: Number(row.amount_cents), status: "Recebido",
     })),
     ...installments.map(row => ({

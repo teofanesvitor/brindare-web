@@ -1,17 +1,19 @@
 import { CalendarDays, CircleDollarSign, FileCheck2, FileUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createEvent, registerEventPayment, uploadSignedEventContract, updateEventStatus } from "@/actions/operations";
+import { cancelEvent, purgeCancelledEvents } from "@/actions/cancellations";
+import { formatDateOnly, formatInstantDate, getTodayDateISO } from "@/lib/timezone";
 
 const money = (c: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(c / 100);
-const date = (value: string) => new Date(`${value}T12:00:00`).toLocaleDateString("pt-BR");
+const date = formatDateOnly;
 
-type SearchParams = Promise<{ status?: string; periodo?: string; payment?: string; signed?: string; created?: string }>;
+type SearchParams = Promise<{ status?: string; periodo?: string; payment?: string; signed?: string; created?: string; cancelled?: string; files?: string; purged?: string }>;
 
 export default async function AgendaPage({ searchParams }: { searchParams: SearchParams }) {
   const filters = await searchParams;
   const supabase = await createClient();
-  const today = new Date().toLocaleDateString("en-CA");
+  const today = getTodayDateISO();
   const validStatuses = ["A pagar", "Confirmado", "Pago"];
   const selectedStatus = validStatuses.includes(filters.status || "") ? filters.status : "";
   const period = filters.periodo === "todos" ? "todos" : "futuros";
@@ -23,7 +25,11 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
   if (period === "futuros") query = query.gte("event_date", today);
   if (selectedStatus) query = query.eq("payment_status", selectedStatus);
 
-  const { data: events, error } = await query;
+  const [{ data: events, error }, { count: cancelledCount }, { count: orphanCancelledContracts }] = await Promise.all([
+    query,
+    supabase.from("events").select("id", { count: "exact", head: true }).eq("status", "Cancelado"),
+    supabase.from("contracts").select("id", { count: "exact", head: true }).eq("status", "cancelled"),
+  ]);
   const rows = await Promise.all((events ?? []).map(async (event) => {
     const payments = (event.event_payments ?? []) as {
       amount_cents: number; paid_at: string; payment_method: string | null; notes: string | null;
@@ -55,6 +61,14 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
       </div></div>
 
       {filters.created === "1" && <p className="operation-success">Evento criado na agenda.</p>}
+      {filters.cancelled === "1" && <p className="operation-success">Evento e contrato removidos. Os pagamentos foram preservados no histórico financeiro.</p>}
+      {filters.purged === "1" && <p className="operation-success">Registros antigos de eventos cancelados removidos. O histórico financeiro foi preservado.</p>}
+      {((cancelledCount || 0) + (orphanCancelledContracts || 0)) > 0 && <form action={purgeCancelledEvents} className="operation-panel">
+        <p>Existem {cancelledCount || 0} evento(s) e {orphanCancelledContracts || 0} contrato(s) cancelado(s) antigo(s) ainda armazenado(s).</p>
+        <small>A limpeza remove os eventos, contratos e arquivos associados, sem apagar pagamentos registrados.</small>
+        <button type="submit">Remover cancelados antigos</button>
+      </form>}
+      {filters.files === "warning" && <p className="operation-empty">O evento foi removido, mas alguns arquivos não puderam ser excluídos do armazenamento. Verifique o Storage do Supabase.</p>}
       <details className="operation-panel agenda-create-event">
         <summary className="agenda-create-summary">+ Adicionar evento sem contrato</summary>
         <form action={createEvent} className="operation-form agenda-create-form">
@@ -139,16 +153,23 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
                       <select name="status" defaultValue={event.status} aria-label="Situação do evento">
                         <option value="Confirmado">Agendado / confirmado</option>
                         <option value="Realizado">Realizado</option>
-                        <option value="Cancelado">Cancelado</option>
                       </select>
                       <button type="submit">Atualizar evento</button>
                     </form>
                     {event.status === "Realizado" && <small>Consumo de materiais processado.</small>}
+                    {event.status !== "Realizado" && <details className="cancel-event-details">
+                      <summary>Cancelar evento</summary>
+                      <form action={cancelEvent} className="payment-form">
+                        <input type="hidden" name="event_id" value={event.id}/>
+                        <small>O evento e o contrato serão removidos. Pagamentos registrados permanecerão no histórico financeiro.</small>
+                        <button type="submit">Confirmar cancelamento</button>
+                      </form>
+                    </details>}
                   </td>
                   <td>
                     {event.latestSigned ? <div className="signed-contract-state">
                       <span className="signed-contract-received"><FileCheck2 size={13}/> Recebido</span>
-                      <small>Recebido em {date(event.latestSigned.signed_at.slice(0, 10))} · {event.signedContracts.length} versão(ões)</small>
+                      <small>Recebido em {formatInstantDate(event.latestSigned.signed_at)} · {event.signedContracts.length} versão(ões)</small>
                       {event.signedContracts.map((contract) => contract.url
                         ? <a className="signed-contract-download" key={contract.id} href={contract.url} target="_blank" rel="noreferrer">{contract.original_file_name}</a>
                         : <small key={contract.id}>Arquivo indisponível: {contract.original_file_name}</small>)}

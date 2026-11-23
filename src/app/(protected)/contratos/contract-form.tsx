@@ -5,9 +5,10 @@ import { FileText, FileDown, LoaderCircle } from "lucide-react";
 import { generateContractAction, type ContractActionResult } from "@/actions/contracts";
 
 type InitialData = {
-  clientId?: string; client?: string; cpf?: string; rg?: string; phone?: string; email?: string;
+  clientId?: string; contractId?: string; client?: string; cpf?: string; rg?: string; phone?: string; email?: string;
   address?: string; neighborhood?: string; city?: string; eventDate?: string; eventTime?: string;
   toastTime?: string; venue?: string; packageName?: string; additionalRequests?: string;
+  travel?: number; deposit?: number; mesa?: number; tacas?: number; fogos?: number; sparkles?: number; champagne?: number;
 };
 type FieldProps = { label: string; name: string; type?: string; required?: boolean; defaultValue?: string | number; min?: string; step?: string };
 
@@ -104,9 +105,9 @@ export function ContractForm({ initialData = {} }: { initialData?: InitialData }
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<ContractActionResult | null>(null);
   const [packageName, setPackageName] = useState(initialData.packageName || "");
-  const [travelCents, setTravelCents] = useState(0);
-  const [depositCents, setDepositCents] = useState(0);
-  const [depositEdited, setDepositEdited] = useState(false);
+  const [travelCents, setTravelCents] = useState(Math.round(Number(initialData.travel || 0) * 100));
+  const [depositCents, setDepositCents] = useState(Math.round(Number(initialData.deposit || 0) * 100));
+  const [depositEdited, setDepositEdited] = useState(initialData.deposit !== undefined);
   const packageCents = (packagePrices[packageName] || 0) * 100;
   const totalCents = packageCents + travelCents;
   const effectiveDepositCents = depositEdited ? depositCents : Math.round(totalCents / 2);
@@ -119,6 +120,8 @@ export function ContractForm({ initialData = {} }: { initialData?: InitialData }
 
   return <form action={submit} className="contract-form">
     {initialData.clientId && <input type="hidden" name="clientId" value={initialData.clientId}/>}
+    {initialData.contractId && <input type="hidden" name="contractId" value={initialData.contractId}/>}
+    {initialData.contractId && <div className="contract-notice"><strong>Refazer contrato:</strong> revise os dados e altere somente o que for necessário. O evento e os pagamentos existentes serão preservados.</div>}
     {initialData.clientId && <div className="contract-notice"><strong>Cadastro pré-preenchido a partir da solicitação do cliente.</strong> Revise os dados e complete as condições comerciais antes de gerar o contrato.</div>}
     {initialData.additionalRequests && <div className="contract-notice"><strong>Adicionais/comentários solicitados pelo cliente:</strong> {initialData.additionalRequests}</div>}
     <section className="contract-panel"><h2>Evento</h2><div className="contract-grid">
@@ -148,13 +151,13 @@ export function ContractForm({ initialData = {} }: { initialData?: InitialData }
       <label className="contract-field"><span>Restante (calculado automaticamente)</span><input type="text" readOnly value={formatCurrency(balanceCents)}/><input type="hidden" name="balance" value={centsToNumber(balanceCents)}/></label>
     </div><p className="contract-hint">Total = pacote + deslocamento. Entrada padrão: 50% do total; saldo = total − entrada.</p></section>
     <section className="contract-panel"><h2>Itens do pacote</h2><div className="contract-grid">
-      <Field label="Mesa de apoio (0 = não incluir)" name="mesa" type="number" min="0" step="1" defaultValue="0"/>
-      <label className="contract-field"><span>Taças de vidro (quantidade)</span><input name="tacas" type="number" min="0" step="1" list="glass-quantities" defaultValue="0"/><datalist id="glass-quantities"><option value="30"/><option value="55"/><option value="90"/></datalist></label>
-      <Field label="Pares de fogos indoor" name="fogos" type="number" min="0" step="1" defaultValue="0"/>
-      <Field label="Sparkles" name="sparkles" type="number" min="0" step="1" defaultValue="0"/>
-      <Field label="Unidades de champanhe" name="champagne" type="number" min="0" step="1" defaultValue="0"/>
+      <Field label="Mesa de apoio (0 = não incluir)" name="mesa" type="number" min="0" step="1" defaultValue={initialData.mesa ?? 0}/>
+      <label className="contract-field"><span>Taças de vidro (quantidade)</span><input name="tacas" type="number" min="0" step="1" list="glass-quantities" defaultValue={initialData.tacas ?? 0}/><datalist id="glass-quantities"><option value="30"/><option value="55"/><option value="90"/></datalist></label>
+      <Field label="Pares de fogos indoor" name="fogos" type="number" min="0" step="1" defaultValue={initialData.fogos ?? 0}/>
+      <Field label="Sparkles" name="sparkles" type="number" min="0" step="1" defaultValue={initialData.sparkles ?? 0}/>
+      <Field label="Unidades de champanhe" name="champagne" type="number" min="0" step="1" defaultValue={initialData.champagne ?? 0}/>
     </div><p className="contract-hint">Quantidades padrão de taças: 30, 55 ou 90 unidades.</p></section>
-    <button className="contract-submit" type="submit" disabled={pending}>{pending ? <><LoaderCircle size={17} className="spin"/> Gerando DOCX…</> : <><FileText size={17}/> Gerar contrato DOCX</>}</button>
+    <button className="contract-submit" type="submit" disabled={pending}>{pending ? <><LoaderCircle size={17} className="spin"/> Gerando DOCX…</> : <><FileText size={17}/> {initialData.contractId ? "Atualizar contrato e gerar DOCX" : "Gerar contrato DOCX"}</>}</button>
     {result && (result.ok ? <div className="contract-success"><strong>Contrato gerado.</strong><span>{result.name}</span><div className="contract-links"><a href={result.documentUrl} download={`${result.name}.docx`}><FileDown size={16}/> Baixar contrato DOCX</a></div></div> : <div className="contract-error">{result.message}</div>)}
   </form>;
 }
