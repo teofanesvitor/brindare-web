@@ -16,13 +16,14 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
   const today = getTodayDateISO();
   const validStatuses = ["A pagar", "Confirmado", "Pago"];
   const selectedStatus = validStatuses.includes(filters.status || "") ? filters.status : "";
-  const period = filters.periodo === "todos" ? "todos" : "futuros";
+  const period = filters.periodo === "todos" ? "todos" : filters.periodo === "realizados" ? "realizados" : "futuros";
 
   let query = supabase.from("events").select(
     "id,contract_id,client_name,event_date,event_time,toast_time,venue,package_name,total_cents,deposit_cents,balance_cents,travel_cents,status,payment_status,glasses,fireworks,sparkles,tables,champagne,event_payments(amount_cents,paid_at,payment_method,notes),event_signed_contracts(id,storage_path,original_file_name,signed_at,created_at)"
-  ).neq("status", "Cancelado").order("event_date", { ascending: true }).limit(200);
+  ).neq("status", "Cancelado").order("event_date", { ascending: period !== "realizados" }).limit(200);
 
   if (period === "futuros") query = query.gte("event_date", today);
+  if (period === "realizados") query = query.eq("status", "Realizado").lt("event_date", today);
   if (selectedStatus) query = query.eq("payment_status", selectedStatus);
 
   const [{ data: events, error }, { count: cancelledCount }, { count: orphanCancelledContracts }] = await Promise.all([
@@ -105,7 +106,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Searc
             </div>
           <form className="agenda-filters" method="get">
             <select name="periodo" defaultValue={period} aria-label="Período">
-              <option value="futuros">Próximos eventos</option><option value="todos">Todos os eventos</option>
+              <option value="futuros">Próximos eventos</option><option value="realizados">Eventos realizados</option><option value="todos">Todos os eventos</option>
             </select>
             <select name="status" defaultValue={selectedStatus} aria-label="Status de pagamento">
               <option value="">Todos os status</option><option value="A pagar">A pagar</option>
