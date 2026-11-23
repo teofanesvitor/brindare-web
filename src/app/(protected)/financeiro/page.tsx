@@ -73,7 +73,6 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
   const trackedMonths = months.filter(row => row.key >= openingMonth && row.key <= currentMonth);
   const historicalMonths = months.filter(row => row.key <= currentMonth);
   const totalRevenue = trackedMonths.reduce((sum, row) => sum + row.revenue, 0);
-  const totalPaidExpenses = trackedMonths.reduce((sum, row) => sum + row.paidExpenses, 0);
   const totalOperatingExpenses = trackedMonths.reduce((sum, row) => sum + row.operatingExpenses, 0);
   const totalHistoricalPaidExpenses = historicalMonths.reduce((sum, row) => sum + row.paidExpenses, 0);
   const operatingResult = totalRevenue - totalOperatingExpenses;
@@ -125,8 +124,8 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
         <div className="cashflow-bars"><div className="cashflow-bar revenue" style={{ height: `${Math.max(row.revenue ? 3 : 0, row.revenue / chartMax * 100)}%` }} title={`Receitas: ${money(row.revenue)}`}/><div className="cashflow-bar expense" style={{ height: `${Math.max(row.paidExpenses ? 3 : 0, row.paidExpenses / chartMax * 100)}%` }} title={`Despesas: ${money(row.paidExpenses)}`}/></div>
         <small>{monthLabel(row.key).slice(0, 3)}/{row.key.slice(2, 4)}</small>
       </div>)}</div>}
-      <div className="operation-table-wrap"><table className="operation-table cashflow-history-table"><thead><tr><th>Mês</th><th>Receitas recebidas</th><th>Despesas operacionais</th><th>Retiradas</th><th>Resultado operacional</th><th>Despesas previstas</th><th>Saldo acumulado</th></tr></thead><tbody>
-        {months.filter(row => row.key <= currentMonth).slice().reverse().map(row => <tr key={row.key}><td><strong>{monthLabel(row.key)}</strong></td><td>{money(row.revenue)}</td><td>{money(row.operatingExpenses)}</td><td>{money(row.withdrawals)}</td><td><strong className={row.net >= 0 ? "cashflow-positive" : "cashflow-negative"}>{money(row.net)}</strong></td><td>{money(row.plannedExpenses)}</td><td>{row.balance === null ? "Anterior ao saldo inicial" : <strong>{money(row.balance)}</strong>}</td></tr>)}
+      <div className="operation-table-wrap"><table className="operation-table cashflow-history-table"><thead><tr><th>Mês</th><th>Receitas recebidas</th><th>Despesas operacionais</th><th>Retiradas</th><th>Resultado operacional</th><th>Despesas a reservar</th><th>Retiradas previstas</th><th>Saldo acumulado</th></tr></thead><tbody>
+        {months.filter(row => row.key <= currentMonth).slice().reverse().map(row => <tr key={row.key}><td><strong>{monthLabel(row.key)}</strong></td><td>{money(row.revenue)}</td><td>{money(row.operatingExpenses)}</td><td>{money(row.withdrawals)}</td><td><strong className={row.net >= 0 ? "cashflow-positive" : "cashflow-negative"}>{money(row.net)}</strong></td><td>{money(row.plannedExpenses - row.plannedWithdrawals)}</td><td>{money(row.plannedWithdrawals)}</td><td>{row.balance === null ? "Anterior ao saldo inicial" : <strong>{money(row.balance)}</strong>}</td></tr>)}
       </tbody></table></div>
     </section>
 
@@ -136,7 +135,8 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
         <article><span>Receitas deste mês</span><strong>{money(current.revenue)}</strong></article>
         <article><span>Despesas operacionais</span><strong>{money(current.operatingExpenses)}</strong></article>
         <article><span>Retiradas de lucro</span><strong>{money(current.withdrawals)}</strong></article>
-        <article><span>Reserva pendente deste mês</span><strong>{money(current.plannedExpenses)}</strong></article>
+        <article><span>Despesas a reservar</span><strong>{money(current.plannedExpenses - current.plannedWithdrawals)}</strong></article>
+        <article><span>Retiradas previstas</span><strong>{money(current.plannedWithdrawals)}</strong></article>
       </div>
       <div className="agenda-finance-summary">
         <article><span>Contas vencidas</span><strong>{money(overdueTotal)}</strong></article>
@@ -174,7 +174,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
     </section>
 
     <section className="operation-panel">
-      <div className="operation-title"><div><h2>Despesas operacionais pendentes</h2></div></div>
+      <div className="operation-title"><div><h2>Lançamentos pendentes</h2></div></div>
       {expenseError ? <p className="operation-empty">Não foi possível carregar as despesas. Aplique a migration financeira.</p> : !expenses.filter(row => row.status === "prevista").length ? <p className="operation-empty">Nenhuma despesa operacional pendente.</p> : <div className="operation-table-wrap"><table className="operation-table"><thead><tr><th>Vencimento</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Situação</th><th>Ação</th></tr></thead><tbody>
         {expenses.filter(row => row.status === "prevista").map(row => <tr key={row.id}><td>{date(row.due_date)}</td><td>{row.description}</td><td>{row.category}</td><td><strong>{money(Number(row.amount_cents))}</strong></td><td><span className={`status-pill ${row.due_date < today ? "status-cancelado" : "status-a-pagar"}`}>{row.due_date < today ? "Vencida" : "A pagar"}</span></td><td><form action={markFinancialExpensePaid} className="cashflow-pay-form"><input type="hidden" name="expense_id" value={row.id}/><input name="paid_at" type="date" defaultValue={today} aria-label="Data de pagamento"/><button className="operation-link" type="submit">Marcar paga</button></form></td></tr>)}
       </tbody></table></div>}
