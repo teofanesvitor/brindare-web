@@ -124,8 +124,8 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
         <div className="cashflow-bars"><div className="cashflow-bar revenue" style={{ height: `${Math.max(row.revenue ? 3 : 0, row.revenue / chartMax * 100)}%` }} title={`Receitas: ${money(row.revenue)}`}/><div className="cashflow-bar expense" style={{ height: `${Math.max(row.paidExpenses ? 3 : 0, row.paidExpenses / chartMax * 100)}%` }} title={`Despesas: ${money(row.paidExpenses)}`}/></div>
         <small>{monthLabel(row.key).slice(0, 3)}/{row.key.slice(2, 4)}</small>
       </div>)}</div>}
-      <div className="operation-table-wrap"><table className="operation-table cashflow-history-table"><thead><tr><th>Mês</th><th>Receitas recebidas</th><th>Despesas operacionais</th><th>Retiradas</th><th>Resultado operacional</th><th>Despesas a reservar</th><th>Retiradas previstas</th><th>Saldo acumulado</th></tr></thead><tbody>
-        {months.filter(row => row.key <= currentMonth).slice().reverse().map(row => <tr key={row.key}><td><strong>{monthLabel(row.key)}</strong></td><td>{money(row.revenue)}</td><td>{money(row.operatingExpenses)}</td><td>{money(row.withdrawals)}</td><td><strong className={row.net >= 0 ? "cashflow-positive" : "cashflow-negative"}>{money(row.net)}</strong></td><td>{money(row.plannedExpenses - row.plannedWithdrawals)}</td><td>{money(row.plannedWithdrawals)}</td><td>{row.balance === null ? "Anterior ao saldo inicial" : <strong>{money(row.balance)}</strong>}</td></tr>)}
+      <div className="operation-table-wrap"><table className="operation-table cashflow-history-table"><thead><tr><th>Mês</th><th>Receitas recebidas</th><th>Despesas operacionais</th><th>Retiradas</th><th>Resultado operacional</th><th>Saldo acumulado</th></tr></thead><tbody>
+        {months.filter(row => row.key <= currentMonth).slice().reverse().map(row => <tr key={row.key}><td><strong>{monthLabel(row.key)}</strong></td><td>{money(row.revenue)}</td><td>{money(row.operatingExpenses)}</td><td>{money(row.withdrawals)}</td><td><strong className={row.net >= 0 ? "cashflow-positive" : "cashflow-negative"}>{money(row.net)}</strong></td><td>{row.balance === null ? "Anterior ao saldo inicial" : <strong>{money(row.balance)}</strong>}</td></tr>)}
       </tbody></table></div>
     </section>
 
@@ -135,8 +135,6 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
         <article><span>Receitas deste mês</span><strong>{money(current.revenue)}</strong></article>
         <article><span>Despesas operacionais</span><strong>{money(current.operatingExpenses)}</strong></article>
         <article><span>Retiradas de lucro</span><strong>{money(current.withdrawals)}</strong></article>
-        <article><span>Despesas a reservar</span><strong>{money(current.plannedExpenses - current.plannedWithdrawals)}</strong></article>
-        <article><span>Retiradas previstas</span><strong>{money(current.plannedWithdrawals)}</strong></article>
       </div>
       <div className="agenda-finance-summary">
         <article><span>Contas vencidas</span><strong>{money(overdueTotal)}</strong></article>
