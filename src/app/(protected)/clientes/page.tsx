@@ -15,7 +15,7 @@ export default async function ClientesPage() {
   const forwardedProtocol = requestHeaders.get("x-forwarded-proto")?.split(",")[0]?.trim();
   const protocol = forwardedProtocol || (process.env.NODE_ENV === "development" ? "http" : "https");
   const configuredBase = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  const base = (configuredBase || (host ? `${protocol}://${host}` : "")).replace(/\\/+$/, "");
+  const base = (configuredBase || (host ? `${protocol}://${host}` : "")).replace(/\/+$/, "");
   const permanentLink = base ? base + "/cadastro-cliente" : "/cadastro-cliente";
 
   return <main className="content">
@@ -37,7 +37,7 @@ export default async function ClientesPage() {
         return <article className="intake-row" key={i.id}>
           <div>
             <strong>{p.full_name || (payloadRemoved ? "Dados enviados excluídos" : "Aguardando preenchimento")}</strong>
-            <span>{p.email || (payloadRemoved ? "Dados pessoais removidos" : "Sem e-mail")} · {p.phone || (payloadRemoved ? " " : "Sem telefone")}</span>
+            <span>{payloadRemoved ? "Dados pessoais removidos" : `${p.email || "Sem e-mail"} · ${p.phone || "Sem telefone"}`}</span>
             <small>Recebido em {new Date(i.submitted_at || i.created_at).toLocaleDateString("pt-BR")}</small>
           </div>
           <div className="intake-actions">
