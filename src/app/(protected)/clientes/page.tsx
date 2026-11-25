@@ -10,6 +10,10 @@ export default async function ClientesPage() {
   const { data: intakes, error } = await supabase.from("client_intakes")
     .select("id,status,payload,client_id,created_at,submitted_at,expires_at")
     .order("created_at", { ascending: false }).limit(50);
+  const clientIds = [...new Set((intakes || []).map((item) => item.client_id).filter((id): id is string => !!id))];
+  const { data: linkedEvents } = clientIds.length
+    ? await supabase.from("events").select("client_id,event_date").in("client_id", clientIds)
+    : { data: [] };
   const requestHeaders = await headers();
   const host = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host");
   const forwardedProtocol = requestHeaders.get("x-forwarded-proto")?.split(",")[0]?.trim();
@@ -34,6 +38,7 @@ export default async function ClientesPage() {
       {error ? <p className="operation-empty">Não foi possível carregar as solicitações. Verifique a conexão com o banco de dados.</p> : !intakes?.length ? <p className="operation-empty">Nenhuma solicitação recebida ainda.</p> : <div className="intake-list">{intakes.map(i => {
         const p = (i.payload || {}) as Record<string, string>;
         const payloadRemoved = !i.payload && i.status === "converted";
+        const hasGeneratedContract = !!i.client_id && !!p.event_date && (linkedEvents || []).some((event) => event.client_id === i.client_id && event.event_date === p.event_date);
         return <article className="intake-row" key={i.id}>
           <div>
             <strong>{p.full_name || (payloadRemoved ? "Dados enviados excluídos" : "Aguardando preenchimento")}</strong>
@@ -43,7 +48,7 @@ export default async function ClientesPage() {
           <div className="intake-actions">
             <span className={`status-pill status-${i.status}`}>{i.status === "submitted" ? "Recebido" : i.status === "converted" ? "Convertido" : i.status === "expired" ? "Expirado" : "Aguardando"}</span>
             {i.status === "submitted" && <Link className="operation-link" href={`/clientes/${i.id}`}>Revisar cadastro</Link>}
-            {i.status === "converted" && i.client_id && i.payload && <DeleteIntakeDataButton intakeId={i.id}/>}
+            {i.status === "converted" && hasGeneratedContract && i.payload && <DeleteIntakeDataButton intakeId={i.id}/>}
             {payloadRemoved && <small>Informações do formulário removidas.</small>}
           </div>
         </article>;
