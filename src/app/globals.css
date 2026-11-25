@@ -236,3 +236,12 @@
 .settings-status-warning{background:#fff4d5;color:#85650d}
 @media(max-width:900px){.settings-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:640px){.settings-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.settings-form button{width:100%}}
+
+/* Client intake swipe-to-delete */
+.intake-swipe{position:relative;overflow:hidden;border-top:1px solid var(--line);touch-action:pan-y}
+.intake-swipe .intake-row{border-top:0;position:relative;z-index:1;background:#fff;min-height:76px;transition:transform .2s ease;will-change:transform}
+.intake-swipe.is-revealed .intake-swipe-content{transform:translateX(-68px)}
+.intake-delete-reveal{position:absolute;inset:0 0 0 auto;width:68px;display:flex;align-items:stretch;justify-content:center;background:#b83e32}
+.intake-delete-reveal form{display:flex;width:100%;height:100%}
+.intake-delete-reveal button{display:flex;align-items:center;justify-content:center;width:100%;border:0;background:transparent;color:#fff;cursor:pointer}
+.intake-delete-reveal button:active{background:#982f26}
