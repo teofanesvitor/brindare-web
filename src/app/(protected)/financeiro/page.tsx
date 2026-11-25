@@ -72,9 +72,12 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
   }
   const trackedMonths = months.filter(row => row.key >= openingMonth && row.key <= currentMonth);
   const historicalMonths = months.filter(row => row.key <= currentMonth);
-  const totalRevenue = trackedMonths.reduce((sum, row) => sum + row.revenue, 0);
-  const totalOperatingExpenses = trackedMonths.reduce((sum, row) => sum + row.operatingExpenses, 0);
-  const totalHistoricalPaidExpenses = historicalMonths.reduce((sum, row) => sum + row.paidExpenses, 0);
+  // Indicadores acumulados consideram todo o histórico disponível, independentemente
+  // do mês definido para início do saldo de caixa.
+  const totalRevenue = historicalMonths.reduce((sum, row) => sum + row.revenue, 0);
+  const totalOperatingExpenses = historicalMonths.reduce((sum, row) => sum + row.operatingExpenses, 0);
+  // Retiradas de lucro são saídas de caixa, mas não despesas operacionais.
+  const totalHistoricalPaidExpenses = historicalMonths.reduce((sum, row) => sum + row.operatingExpenses, 0);
   const operatingResult = totalRevenue - totalOperatingExpenses;
   const cashBalance = openingBalance + trackedMonths.reduce((sum, row) => sum + row.cashNet, 0);
   const current = months.find(row => row.key === currentMonth) ?? { revenue: 0, paidExpenses: 0, operatingExpenses: 0, withdrawals: 0, plannedExpenses: 0, plannedWithdrawals: 0, net: 0, cashNet: 0 };
@@ -112,7 +115,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: S
       <article><span>Saldo de caixa estimado</span><strong>{money(cashBalance)}</strong><small>Saldo inicial + movimentações desde {monthLabel(openingMonth)}</small></article>
       <article><span>Resultado operacional acumulado</span><strong>{money(operatingResult)}</strong></article>
       <article><span>Total recebido no período</span><strong>{money(totalRevenue)}</strong></article>
-      <article><span>Total desembolsado</span><strong>{money(totalHistoricalPaidExpenses)}</strong></article>
+      <article><span>Despesas</span><strong>{money(totalHistoricalPaidExpenses)}</strong></article>
       <article><span>Contas a receber</span><strong>{money(Number(receivables?.receivable_cents ?? 0))}</strong><small>{Number(receivables?.open_events ?? 0)} eventos com saldo aberto</small></article>
       <article><span>Contas a pagar</span><strong>{money(plannedTotal)}</strong></article>
     </section>
