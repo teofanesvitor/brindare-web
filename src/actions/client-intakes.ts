@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
-export async function deleteConvertedIntakePayload(form: FormData) {
+export async function deleteClientIntake(form: FormData) {
   await requireAdmin();
   const intakeId = String(form.get("intake_id") ?? "").trim();
   if (!intakeId) throw new Error("Solicitação inválida.");
@@ -12,16 +12,13 @@ export async function deleteConvertedIntakePayload(form: FormData) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("client_intakes")
-    .update({ payload: null })
+    .delete()
     .eq("id", intakeId)
-    .eq("status", "converted")
-    .not("client_id", "is", null)
-    .not("payload", "is", null)
     .select("id")
     .maybeSingle();
 
-  if (error) throw new Error("Não foi possível excluir os dados enviados: " + error.message);
-  if (!data) throw new Error("A solicitação não está convertida ou os dados já foram excluídos.");
+  if (error) throw new Error("Não foi possível excluir a solicitação: " + error.message);
+  if (!data) throw new Error("Solicitação não encontrada ou já excluída.");
 
   revalidatePath("/clientes");
 }
