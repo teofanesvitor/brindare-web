@@ -3,12 +3,17 @@ import { headers } from "next/headers";
 import { Bell, Link2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { IntakeLinkActions } from "./intake-link-actions";
+import { DeleteIntakeDataButton } from "./delete-intake-data-button";
 
 export default async function ClientesPage() {
   const supabase = await createClient();
   const { data: intakes, error } = await supabase.from("client_intakes")
-    .select("id,status,payload,created_at,submitted_at,expires_at")
+    .select("id,status,payload,client_id,created_at,submitted_at,expires_at")
     .order("created_at", { ascending: false }).limit(50);
+  const clientIds = [...new Set((intakes || []).map((item) => item.client_id).filter((id): id is string => !!id))];
+  const { data: linkedEvents } = clientIds.length
+    ? await supabase.from("events").select("client_id,event_date").in("client_id", clientIds)
+    : { data: [] };
   const requestHeaders = await headers();
   const host = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host");
   const forwardedProtocol = requestHeaders.get("x-forwarded-proto")?.split(",")[0]?.trim();
@@ -30,7 +35,24 @@ export default async function ClientesPage() {
     </section>
     <section className="operation-panel">
       <div className="operation-title"><div><h2><Bell size={17}/> Solicitações recebidas</h2></div></div>
-      {error ? <p className="operation-empty">Não foi possível carregar as solicitações. Verifique a conexão com o banco de dados.</p> : !intakes?.length ? <p className="operation-empty">Nenhuma solicitação recebida ainda.</p> : <div className="intake-list">{intakes.map(i=>{const p=(i.payload || {}) as Record<string,string>;return <article className="intake-row" key={i.id}><div><strong>{p.full_name || "Aguardando preenchimento"}</strong><span>{p.email || "Sem e-mail"} · {p.phone || "Sem telefone"}</span><small>Recebido em {new Date(i.submitted_at || i.created_at).toLocaleDateString("pt-BR")}</small></div><div className="intake-actions"><span className={`status-pill status-${i.status}`}>{i.status === "submitted" ? "Recebido" : i.status === "converted" ? "Convertido" : i.status === "expired" ? "Expirado" : "Aguardando"}</span>{i.status === "submitted" && <Link className="operation-link" href={`/clientes/${i.id}`}>Revisar cadastro</Link>}</div></article>})}</div>}
+      {error ? <p className="operation-empty">Não foi possível carregar as solicitações. Verifique a conexão com o banco de dados.</p> : !intakes?.length ? <p className="operation-empty">Nenhuma solicitação recebida ainda.</p> : <div className="intake-list">{intakes.map(i => {
+        const p = (i.payload || {}) as Record<string, string>;
+        const payloadRemoved = !i.payload && i.status === "converted";
+        const hasGeneratedContract = !!i.client_id && !!p.event_date && (linkedEvents || []).some((event) => event.client_id === i.client_id && event.event_date === p.event_date);
+        return <article className="intake-row" key={i.id}>
+          <div>
+            <strong>{p.full_name || (payloadRemoved ? "Dados enviados excluídos" : "Aguardando preenchimento")}</strong>
+            <span>{payloadRemoved ? "Dados pessoais removidos" : `${p.email || "Sem e-mail"} · ${p.phone || "Sem telefone"}`}</span>
+            <small>Recebido em {new Date(i.submitted_at || i.created_at).toLocaleDateString("pt-BR")}</small>
+          </div>
+          <div className="intake-actions">
+            <span className={`status-pill status-${i.status}`}>{i.status === "submitted" ? "Recebido" : i.status === "converted" ? "Convertido" : i.status === "expired" ? "Expirado" : "Aguardando"}</span>
+            {i.status === "submitted" && <Link className="operation-link" href={`/clientes/${i.id}`}>Revisar cadastro</Link>}
+            {i.status === "converted" && hasGeneratedContract && i.payload && <DeleteIntakeDataButton intakeId={i.id}/>}
+            {payloadRemoved && <small>Informações do formulário removidas.</small>}
+          </div>
+        </article>;
+      })}</div>}
     </section>
   </main>;
 }
