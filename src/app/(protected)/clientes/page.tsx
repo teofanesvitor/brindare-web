@@ -14,7 +14,7 @@ export default async function ClientesPage() {
   const forwardedProtocol = requestHeaders.get("x-forwarded-proto")?.split(",")[0]?.trim();
   const protocol = forwardedProtocol || (process.env.NODE_ENV === "development" ? "http" : "https");
   const configuredBase = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  const base = (configuredBase || (host ? `${protocol}://${host}` : "")).replace(/\\/+$/, "");
+  const base = (configuredBase || (host ? `${protocol}://${host}` : "")).replace(/\/+$/, "");
   const permanentLink = base ? base + "/cadastro-cliente" : "/cadastro-cliente";
 
   return <main className="content">
